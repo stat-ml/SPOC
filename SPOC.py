@@ -1,157 +1,201 @@
-import scipy as sp
-import scipy.sparse.linalg
+"""
+SPOC method realization
+@author: kslavnov
+
+You need to refactor this.
+Make a class and etc.
+"""
 import numpy as np
-import seaborn as sns
-from cvxpy import *
+import scipy as sp
+import matplotlib.pyplot as plt
 
 eigs = sp.sparse.linalg.eigs
 
-def get_U_L(matrix, k):
-    '''
-    eigenvalue decomposition of symmetric matrix (U^-1 = U.T)
-    matrix = U * L * U.T
-
-    k = n_clusters
-
-    returns
-    _______________________________________________
-    U: np.array with shape (n_nodes, n_clusters)
-    L: np.array with shape (n_clusters, n_clusters), L is diagonal
-    '''
-    Lambda, U = eigs(matrix, k=k, which='LR')
-    Lambda, U = np.diag(np.real(Lambda)), np.real(U)
-    return U, Lambda
+S2 = None
+axs = []
+NEW = False
+Draw = False  # Only for data with 2 or 3 communities
+dims = 2 # or 3 for drawing
 
 
-def get_Q(U):
-    '''
-    get positive semidefinite Q matrix of ellipsoid from U[i,:] vectors
-    for any u_i in range(U[i,:], U.shape[0] <- number of nodes):
+def get_F_B(U, Lambda, r, cut=True):
 
-            abs(u_i.T * Q * u_i) < 1
-    returns
-    _______________________________________________
-    Q: np.array with shape (U.shape[1], U.shape[1])
-
-    requires: cvxpy (http://www.cvxpy.org/en/latest/)
-    '''
-    k = U.shape[1]
-    Q = Semidef(n=k)
-    constraints = [ abs( U[i,:].reshape((1,k))*Q*U[i,:].reshape((k,1)) ) < 1 for i in range(U.shape[0]) ]
-    obj = Minimize(-log_det(Q))
-    prob = Problem(obj, constraints)
-    _ = prob.solve()
-    Q = np.array(Q.value)
-    return Q
-
-
-def transform_U(U, Q, return_transform_matrix = False):
-    '''
-    U is matrix (n,k) shape, n = number of nodes, k is number of clusters
-    transform U[i,:] coordinates to new basis where ellipsoid is a sphere
-
-    Lambda = S.T * Q * S (Lambda is diagonal matrix (k,k)), where
-    S is basis transformation matrix
-    e' = e*S (for basis vectors)
-    coordinates in new basis = S^-1 * coordinates in old basis
-    Q is symmetric matrix ==> S^-1 = S.T
-    new_coord = S.T * old_coord
-    in order to make Lambda = Identity it is necessary to multiply S.T to np.sqrt(L)
-
-    returns
-    _______________________________________________
-    new_U: np.array with shape == U.shape
-    transform_matrix: np.array with shape == Q.shape
-    '''
-    L, S = sp.linalg.eig(Q)
-    S, L = np.real(S), np.diag(np.real(L))
-    transform_matrix = (S.T).dot(np.sqrt(L))
-    new_U = np.dot(transform_matrix, U.T).T
-    if return_transform_matrix == True:
-        return new_U, transform_matrix
+    if NEW:
+        X = U
     else:
-        return new_U
-
-
-def get_F_B(U, Lambda, cut=True):
-
-    '''
-    compute F, B from U matrix
-    via using get_Q() to find Q matrix of ellipsoid
-    and using transform_U(U,Q) to calculate new coordinate of u_i vectors
-
-    U.shape[0] is a number of nodes
-    U.shape[1] is a number of clusters
-
-    returns
-    _______________________________________________
-    F: np.array with shape (U.shape[1], U.shape[1])
-    B: np.array with shape == F.shape
-    '''
-    k = U.shape[1]
-    Q = get_Q(U)
-    new_U, transform_matrix = transform_U(U, Q, return_transform_matrix=True)
-
-    ### find k the biggest vectors in u_i
-    ### and define f_j = u_i for
+        X = U.dot(np.sqrt(np.diag(Lambda)))
+    R = X.T
     J = set()
     i = 0
-    while i < k:
-        j_indexes = np.argsort(-np.sum(new_U ** 2, axis=1))
-        r = 0
-        j_ = j_indexes[r]
+    col = None
+    while i < r:
+        if Draw:
+            drawR(i, R)
+        j_indexes = np.argsort(-np.sum(R ** 2, axis=0))
+        k = 0
+        j_ = j_indexes[k]
         while j_ in J:
-            j_ = j_indexes[r]
-            r += 1
-        u = new_U[j_, :]
-        u = u.reshape((u.shape[0], 1))
-        new_U = (np.diag([1.] * new_U.shape[1]) - u.dot(u.T) / (u.T.dot(u))).dot(new_U.T)
-        new_U = new_U.T
+            j_ = j_indexes[k]
+            k += 1
+        u = R[:, j_]
+        u = u.reshape(u.shape[0], 1)
+        R = (np.diag([1.] * R.shape[0]) - u.dot(u.T) / (u.T.dot(u))).dot(R)
         J.add(j_)
         i += 1
-    F = U[list(J), :]
-    B = F.dot(Lambda).dot(F.T)
-    B = (B - np.min(B))/(np.max(B) - np.min(B))
+
+    F = X[list(J), :]
+
+    if Draw:
+        drawF(F)
+
+    if NEW:
+        B = F.dot(np.diag(Lambda).dot(F.T))  # TODO: optimise calc
+    else:
+        B = F.dot(F.T)
+    if np.any(B < 0):
+        pass
+        # print('I need to cut B!')
+
+    if cut:
+        B[B < 1e-8] = 0
+        B[B > 1] = 1
+
     return F, B
 
 
-def get_Theta(U, F):
-    '''
-    function to find Theta from U and F
-    via convex optimization in cvxpy
+def get_Theta(U, L, F):
+    if NEW:
+        X = U
+    else:
+        X = U.dot(np.diag(np.sqrt(L)))
 
-    returns
-    _______________________________________________
-    Theta: np.array with shape (n_nodes, n_clusters)
-    where n_nodes == U.shape[0], n_clusters == U.shape[1]
-
-    requires: cvxpy (http://www.cvxpy.org/en/latest/)
-    '''
-
-    assert U.shape[1] == F.shape[0] == F.shape[1], "U.shape[1] != F.shape"
-    n_nodes = U.shape[0]
-    n_clusters = U.shape[1]
-
-    Theta = Variable(rows = n_nodes, cols = n_clusters)
-    constraints = [sum_entries(Theta[i,:])==1 for i in range(n_nodes)]
-    constraints  += [Theta[i,j] >= 0 for i in range(n_nodes) for j in range(n_clusters)]
-    obj = Minimize(norm(U - Theta*F, 'fro'))
-    prob = Problem(obj, constraints)
-    prob.solve()
-    return np.array(Theta.value)
-
-def basic_get_Theta(U, L, F):
-    '''
-    basic function to find Theta from U, L and F
-    via ordinary least squares
-
-    returns
-    _______________________________________________
-    Theta: np.array with shape (n_nodes, n_clusters)
-    '''
-
-    assert U.shape[1] == F.shape[0] == F.shape[1], "U.shape[1] != F.shape"
-    Theta: np.array
     projector = F.T.dot(np.linalg.inv(F.dot(F.T)))
-    Theta = U.dot(projector)
-    return Theta
+    theta = X.dot(projector)
+    return theta
+
+
+def get_U_L(matrix, k):
+    Lambda, U = eigs(1.0 * matrix, k, which="LR")
+    Lambda, U = np.real(Lambda), np.real(U)
+    U = np.sign(U[0, :])[None, :] * U
+    return U, Lambda
+
+
+def SPOC(A, n_clusters, Theta_true=None):
+    if Theta_true is not None and Draw:
+        n = A.shape[0]
+        global S2
+        S2 = np.hstack((Theta_true, np.array([(0, 0.8)] * n)))
+
+    U, Lambda = get_U_L(A, k=n_clusters)
+    F, B = get_F_B(U, Lambda, n_clusters)
+    theta = get_Theta(U, Lambda, F)
+    theta_simplex_proj = np.array([euclidean_proj_simplex(x) for x in theta])
+    return theta_simplex_proj, B
+
+def SPOC_from_UL(U, Lambda, n_clusters, Theta_true=None):
+    if Theta_true is not None and Draw:
+        n = U.shape[0]
+        global S2
+        S2 = np.hstack((Theta_true, np.array([(0, 0.8)] * n)))
+
+    F, B = get_F_B(U, Lambda, n_clusters)
+    theta = get_Theta(U, Lambda, F)
+    theta_simplex_proj = np.array([euclidean_proj_simplex(x) for x in theta])
+    return theta_simplex_proj, B
+
+
+def SPOC_get_Z_from_UL(U, L, n_clusters, Theta_true, new=True):
+    global NEW
+    NEW = new
+    theta, B = SPOC_from_UL(U, L, n_clusters, Theta_true)
+    return 1.0 * (theta > 1 / n_clusters), theta
+
+def SPOC_get_Z(A, n_clusters, Theta_true, new=True):
+    global NEW
+    NEW = new
+    theta, B = SPOC(A, n_clusters, Theta_true)
+    return 1.0 * (theta > 1 / n_clusters)
+
+
+def euclidean_proj_simplex(v, s=1):
+    """ Compute the Euclidean projection on a positive simplex
+    Solves the optimisation problem (using the algorithm from [1]):
+        min_w 0.5 * || w - v ||_2^2 , s.t. \sum_i w_i = s, w_i >= 0 
+    Parameters
+    ----------
+    v: (n,) numpy array,
+       n-dimensional vector to project
+    s: int, optional, default: 1,
+       radius of the simplex
+    Returns
+    -------
+    w: (n,) numpy array,
+       Euclidean projection of v on the simplex
+    Notes
+    -----
+    The complexity of this algorithm is in O(n log(n)) as it involves sorting v.
+    Better alternatives exist for high-dimensional sparse vectors (cf. [1])
+    However, this implementation still easily scales to millions of dimensions.
+    References
+    ----------
+    [1] Efficient Projections onto the .1-Ball for Learning in High Dimensions
+        John Duchi, Shai Shalev-Shwartz, Yoram Singer, and Tushar Chandra.
+        International Conference on Machine Learning (ICML 2008)
+        http://www.cs.berkeley.edu/~jduchi/projects/DuchiSiShCh08.pdf
+    """
+    assert s > 0, "Radius s must be strictly positive (%d <= 0)" % s
+    n, = v.shape  # will raise ValueError if v is not 1-D
+    # check if we are already on the simplex
+    if v.sum() == s and np.alltrue(v >= 0):
+        # best projection: itself!
+        return v
+    # get the array of cumulative sums of a sorted (decreasing) copy of v
+    u = np.sort(v)[::-1]
+    cssv = np.cumsum(u)
+    # get the number of > 0 components of the optimal solution
+    rho = np.nonzero(u * np.arange(1, n + 1) > (cssv - s))[0][-1]
+    # compute the Lagrange multiplier associated to the simplex constraint
+    theta = (cssv[rho] - s) / (rho + 1.0)
+    # compute the projection by thresholding v using theta
+    w = (v - theta).clip(min=0)
+    return w
+
+
+def drawF(F):
+    if dims == 2:
+        axs[0].scatter(F[:, 0], F[:, 1], c='k', s=25, marker='*')
+    else:
+        axs[0].scatter(F[:, 0], F[:, 1], F[:, 2], c='k', s=200, )
+
+
+def drawR(i, R):
+    global axs
+    if i >= len(axs):
+        fig = plt.figure(i + 1)
+        if dims == 2:
+            ax = fig.add_subplot(111)
+        else:
+            ax = fig.add_subplot(111, projection='3d')
+        axs.append(ax)
+        max_size = 20
+        col = None #'k'
+    else:
+        ax = axs[i]
+        max_size = 100
+    sizes = np.sum(R ** 2, axis=0)
+    sizes -= np.min(sizes)
+    sizes /= np.max(sizes) + 1e-6
+    sizes *= max_size
+    sizes += 5
+    if dims == 2:
+        ax.scatter(1e-16 + np.abs(R[0]), 1e-16 + np.abs(R[1]), c=S2 if col is None else col, s=sizes)
+        ax.set_xscale("log", nonposx='clip')
+        ax.set_yscale("log", nonposy='clip')
+    else:
+        ax.scatter(R[0], R[1], R[2], c=S2 if col is None else col, s=sizes)
+        ax.scatter(0, 0, 0, c='k', s=100)
+        ax.scatter(0, 0, c=(0.5, 0.5, 0.5, 0.5), s=100)
+    plt.tight_layout(pad=1.02)
+    plt.draw()
+    plt.hold('on')

@@ -183,7 +183,7 @@ def generate_theta_bin_pure(n_nodes):
     return Theta2 / np.sum(Theta2, axis=1, keepdims=True)
 
 
-def generate_P(n_nodes=5000, n_clusters=3, pure_nodes_number=None, B=None, Theta=None, alphas=None, seed=None):
+def generate_p(n_nodes=5000, n_clusters=3, pure_nodes_number=None, B=None, Theta=None, alphas=None, seed=None):
     '''
     function to generate P matrix from Theta, B matrices
     returns
@@ -237,7 +237,7 @@ def P_to_A(P, reflect = True, seed=None):
     return 1. * A
 
 
-def generate_A(n_nodes=5000, n_clusters=3, pure_nodes_number=None, B=None, Theta=None, reflect=True, alphas=None, seed=None):
+def generate_a(n_nodes=5000, n_clusters=3, pure_nodes_number=None, B=None, Theta=None, reflect=True, alphas=None, seed=None):
     '''
     generate A matrix from params
     using P_to_A
@@ -247,7 +247,7 @@ def generate_A(n_nodes=5000, n_clusters=3, pure_nodes_number=None, B=None, Theta
     Theta: np.array with shape (n_nodes, n_clusters)
     B: np.array with shape (n_clusters, n_clusters)
     '''
-    P, Theta, B = generate_P(n_nodes, n_clusters, pure_nodes_number, B, Theta, alphas, seed=seed)
+    P, Theta, B = generate_p(n_nodes, n_clusters, pure_nodes_number, B, Theta, alphas, seed=seed)
     A = P_to_A(P, reflect=reflect)
     return A, Theta, B
 

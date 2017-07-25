@@ -22,17 +22,19 @@ def find_permutation_Theta(Theta, Theta_exp):
     returns
     _______________________________________________
     relative error: float
-    min_theta: np.array with shape == Theta.shape
+    min_theta: nd.array with shape == Theta.shape
     '''
 
     assert Theta.shape == Theta_exp.shape, "Theta.shape != Theta_exp.shape"
     error = np.inf
     min_theta = np.zeros_like(Theta_exp)
+    
     for perm in permutations(range(Theta.shape[1])):
         temple_error = np.linalg.norm(Theta - Theta_exp[:, perm], ord='fro')
         if temple_error < error:
             error = temple_error
             min_theta = Theta_exp[:, perm]
+            
     return (error / np.linalg.norm(Theta, ord='fro'), min_theta)
 
 
@@ -41,19 +43,20 @@ def find_permutation_B(B, B_exp):
     function to find permutation of Theta cols and rows
     which minimize Frobenius norm:
 
-        || Theta - Theta_exp ||
+        || B - B_exp ||
 
     the output is the relative error, optimal B_exp
 
     returns
     _______________________________________________
     relative error: float
-    min_B: np.array with shape == B.shape
+    min_B: nd.array with shape == B.shape
     '''
 
     assert B.shape == B_exp.shape, "B.shape != B_exp.shape"
     error = np.inf
     min_B = np.zeros_like(B_exp)
+    
     for perm in permutations(range(B.shape[1])):
         perm_B = B_exp[:, perm]
         perm_B = perm_B[perm, :]
@@ -61,6 +64,7 @@ def find_permutation_B(B, B_exp):
         if temple_error < error:
             error = temple_error
             min_B = perm_B
+            
     return (error, min_B)
 
 
@@ -101,12 +105,12 @@ def generate_graph(n, frac, p, q, **kwargs):
 
 def create_pure_node_row(size, place_of_one=None):
     '''
-    function to create a row with 'pure' node in Theta matrix
+    function to create a row with 'pure' nodes in Theta matrix
     size = Theta.shape[1] (Theta.shape[1] = number of communities)
     place_of_one = index of 1 in this row
     returns
     _______________________________________________
-    np.array with shape (size, )
+    nd.array with shape (size, )
     '''
     assert 0 <= place_of_one < size, "place_of_one >= size or < 0"
     return np.array([0] * place_of_one + [1] + [0]*(size - 1 - place_of_one))
@@ -121,7 +125,7 @@ def generate_theta(n_nodes, n_clusters, pure_nodes_number, alphas=None, seed=Non
     alphas = array in np.random.dirichlet
     returns
     _______________________________________________
-    Theta: np.array with shape (n_nodes, n_clusters)
+    Theta: nd.array with shape (n_nodes, n_clusters)
     '''
 
     if seed is not None:
@@ -138,8 +142,10 @@ def generate_theta(n_nodes, n_clusters, pure_nodes_number, alphas=None, seed=Non
     ### we generate two matrix. The first one is the matrix with only pure_nodes
     ### the second matrix is from dirichlet distribution
     ### further we concat them along axis=0
+    
     dirichlet_node_distribution = np.random.dirichlet(alphas, size=n_nodes - pure_nodes_number)
     pure_node_matrix = []
+    
     for pure_node_idx in range(pure_nodes_number):
         pure_node_place = np.random.randint(low=0, high=n_clusters)
         pure_row = create_pure_node_row(n_clusters, pure_node_idx % n_clusters)
@@ -148,8 +154,6 @@ def generate_theta(n_nodes, n_clusters, pure_nodes_number, alphas=None, seed=Non
     pure_node_matrix = np.array(pure_node_matrix).reshape((pure_nodes_number, n_clusters))
     Theta = np.vstack([dirichlet_node_distribution, pure_node_matrix])
     Theta = np.random.permutation(Theta)
-    #Theta2 = Theta[np.argsort(np.argmax(Theta, axis=1))]
-    #return Theta2
     return Theta
 
 def generate_theta_binary(n_nodes):
@@ -197,29 +201,34 @@ def generate_p(n_nodes=5000, n_clusters=3, pure_nodes_number=None, B=None, Theta
 
     if pure_nodes_number is None:
         pure_nodes_number = n_clusters
+    else:
+        assert 0 <= pure_nodes_number <= n_nodes, "number of pure nodes is not in (0; n_nodes)"
+        
     if alphas is None:
         alphas = [1. / n_clusters] * n_clusters
     else:
         assert len(alphas) == n_clusters, "len of alphas != n_clusters"
-
-    assert n_nodes >= n_clusters, "n_clusters > n_nodes"
-    assert 0 <= pure_nodes_number <= n_nodes, "number of pure nodes is not in (0; n_nodes)"
-
+        
     if Theta is None:
         Theta = generate_theta(n_nodes, n_clusters, pure_nodes_number, alphas, seed=seed)
-    assert Theta.shape == (n_nodes, n_clusters), "Theta.shape != (n_nodes, n_clusters)"
-
+    else:
+        assert Theta.shape == (n_nodes, n_clusters), "Theta.shape != (n_nodes, n_clusters)"
+        
     if B is None:
         B = np.diag(np.random.random(n_clusters))
-    assert B.shape == (n_clusters, n_clusters), "B.shape != (n_clusters, n_clusters)"
+    else:
+        assert B.shape == (n_clusters, n_clusters), "B.shape != (n_clusters, n_clusters)"
+
+    assert n_nodes >= n_clusters, "n_clusters > n_nodes"
+
     P = Theta.dot(B).dot(Theta.T)
     return P, Theta, B
 
 
 def P_to_A(P, reflect = True, seed=None):
     '''
-    function to generate A (adjacency matrix) from P (via bernoulli distribution)
-    reflect parametrs is to reflect elements in A symmetrically along diagonal,
+    function to generate A (adjacency matrix) from P (from bernoulli distribution)
+    reflect parametrs is a flag to reflect elements in A symmetrically along diagonal,
     default value is True
     returns
     _______________________________________________
@@ -257,7 +266,7 @@ def models_param():
     :return:
     """
     np.random.seed(12312)
-    n_nodes = 5000
+    n_nodes = 500
     n_clusters = 3
     pure_nodes_number = 3
 
@@ -356,7 +365,7 @@ def models_param():
         }
         yield A, Theta, B, args
 
-    n_nodes = 5000
+    n_nodes = 500
     ns[-1] += 500
     pure_nodes_number = 3
     Rho = [1, 0.75, 0.5, 0.3, 0.2, 0.15, 0.1, 0.075, 0.05, 0.025, 0.01, 0.001]

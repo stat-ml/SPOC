@@ -19,7 +19,7 @@ from new_SPOC import new_SPOC_get_Z_from_UL
 from generate_SPOC_model import models_param, find_permutation_Theta
 pd.set_option('display.width', 1000)
 
-Nsimu = 10
+Nsimu = 3
 NbInit = 5
 
 Model = "SPOC"

@@ -183,33 +183,45 @@ def get_F_B(U, Lambda, **kwargs):
     else:
         return F, B
 
-def get_F_B_std(U, Lambda, std, regularization):
+def get_F_B_bootstrap(U, Lambda, repeats, std_num = 3, **kwargs):
+
+    if "return_pure_nodes_indices" in kwargs:
+        return_pure_nodes_indices = kwargs["return_pure_nodes_indices"]
+    else:
+        return_pure_nodes_indices = False
 
     k = U.shape[1]
 
     ### find k the biggest vectors in u_i
     ### and define f_j = u_i for
     new_U = U.copy()
-    J = set()
+    J = []
+    F = np.zeros((k,k))
     i = 0
+
     while i < k:
-        j_indexes = np.argsort(-np.sum(new_U**2, axis=1) + regularization * std)
-        r = 0
-        j_ = j_indexes[r]
-        while j_ in J:
-            j_ = j_indexes[r]
-            r += 1
-        u = new_U[j_, :]
+        j_ = np.argsort(-np.sum(new_U**2, axis=1))[0]
+        J.append(j_)
+
+        cov = np.cov(repeats[:, j_].T)
+        v = U[j_, :]
+        diffs = [v - u for u in U]
+        indices = [index for (index, dif) in enumerate(diffs) if dif.dot(np.linalg.inv(cov)).dot(dif.T) < std_num**2]
+        
+        F[i,:] = U[indices].mean(axis=0)
+        u = new_U[indices].mean(axis=0)
         u = u.reshape((u.shape[0], 1))
         new_U = (np.diag([1.] * new_U.shape[1]) - u.dot(u.T) / (u.T.dot(u))).dot(new_U.T)
         new_U = new_U.T
-        J.add(j_)
         i += 1
-    F = U[list(J), :]
+        
     B = F.dot(np.diag(Lambda)).dot(F.T)
     B[B < 1e-8] = 0
     B[B > 1] = 1
-    return F, B, list(J)
+    if return_pure_nodes_indices == True:
+        return F, B, J
+    else:
+        return F, B
 
 def get_Theta(U, F, Lambda = None, **kwargs):
     '''
@@ -302,14 +314,14 @@ def SPOC(A, n_clusters, **kwargs):
 
     if return_pure_nodes_indices == True:
         F, B, J = get_F_B(U, Lambda, **kwargs)
-        theta = get_Theta(U, F, L, **kwargs)
+        theta = get_Theta(U, F, Lambda, **kwargs)
         return theta, B, J
     else:
         F, B  = get_F_B(U, Lambda, **kwargs)
         theta = get_Theta(U, F, Lambda, **kwargs)
         return theta, B
 
-def calculate_C(A, n_clusters):
+def calculate_C(A, n_clusters, ):
     '''
     calculate C matrix from adjacency matrix A
 
@@ -345,11 +357,24 @@ def calculate_mean_cov_U(A, C, n_repetitions = 30, **kwargs):
 
     assert A.shape[0] == C.shape[0], "A.shape[0] != U.shape[0]"
     n_nodes = A.shape[0]
+    n_clusters = C.shape[1]
 
-    repeat_matrix_array = []
-    for i in range(n_repetitions):
-        bootstrap_indices = np.random.randint(low=0, high=n_nodes, size=n_nodes)
-        repeat_matrix_array.append( np.dot(A[:, bootstrap_indices], C[bootstrap_indices, :]) )
+    if "bootstrap_type" in kwargs:
+        bootstrap_type = kwargs["bootstrap_type"]
+        assert bootstrap_type == "random_indices" or bootstrap_type == "random_weights", "Wrong bootstrap type"
+    else:
+        bootstrap_type = "random_weights"
+        
+    repeat_matrix_array = []   
+    
+    if bootstrap_type == "random_weights":
+        for i in range(n_repetitions):
+            bootstrap_weights = np.random.normal(loc=1, scale=1, size=(n_nodes, n_nodes))
+            repeat_matrix_array.append( np.dot(A * bootstrap_weights, C) )
+    else:
+        for i in range(n_repetitions):
+            bootstrap_indices = np.random.randint(low=0, high=n_nodes, size=n_nodes)
+            repeat_matrix_array.append( np.dot(A[:, bootstrap_indices], C[bootstrap_indices, :]) )
 
     U = np.mean(repeat_matrix_array, axis=0)
     repeat_matrix_array = np.array(repeat_matrix_array)
@@ -365,7 +390,7 @@ def calculate_mean_cov_U(A, C, n_repetitions = 30, **kwargs):
     else:
         return U, np.array(std_array)
 
-def SPOC_bootstrap(A, n_clusters, n_repetitions=30, regularization=0.1, **kwargs):
+def SPOC_bootstrap(A, n_clusters, n_repetitions=30, std_num=3, **kwargs):
     '''
     bootstrap realization of SPOC algorithm
 
@@ -391,31 +416,37 @@ def SPOC_bootstrap(A, n_clusters, n_repetitions=30, regularization=0.1, **kwargs
     repeat_matrix_array: nd.array with shape (n_repetitions, n_nodes, n_clusters)
     the result of bootstrap
     '''
-
-    _, Lambda = get_U_L(A, n_clusters)
-    C = calculate_C(A, n_clusters)
-    U_mean, std, repeats = calculate_mean_cov_U(A, C, n_repetitions, return_bootstrap_matrix=True)
-    F, B, J = get_F_B(U_mean, Lambda, use_ellipsoid=False, return_pure_nodes_indices=True)
-    Theta = get_Theta(U=U_mean, F=F, Lambda = Lambda, use_cvxpy=False)
-
-    if "return_pure_nodes_indices" in kwargs:
-        return_pure_nodes_indices = kwargs["return_pure_nodes_indices"]
+    
+    if "bootstrap_type" in kwargs:
+        bootstrap_type = kwargs["bootstrap_type"]
+        assert bootstrap_type == "random_indices" or bootstrap_type == "random_weights", "Wrong bootstrap type"
     else:
-        return_pure_nodes_indices = False
+        bootstrap_type = "random_weights"
+        
+    U, Lambda = get_U_L(A, n_clusters)
+    C = calculate_C(A, n_clusters)
+    U_mean, std, repeats = calculate_mean_cov_U(A, C, n_repetitions, return_bootstrap_matrix=True, bootstrap_type=bootstrap_type)
+    F, B, J = get_F_B_bootstrap(U, Lambda, repeats, std_num=std_num, return_pure_nodes_indices=True)
+    Theta = get_Theta(U=U_mean, F=F, Lambda = Lambda, use_cvxpy=False)
 
     if "return_bootstrap_matrix" in kwargs:
         return_bootstrap_matrix = kwargs["return_bootstrap_matrix"]
     else:
         return_bootstrap_matrix = False
 
-    if return_pure_nodes_indices and return_bootstrap_matrix:
-        return Theta, B, J, repeats
-    if (return_pure_nodes_indices == False) and (return_bootstrap_matrix == True):
+    if "return_pure_nodes_indices" in kwargs:
+        return_pure_nodes_indices = kwargs["return_pure_nodes_indices"]
+    else:
+        return_pure_nodes_indices = False
+        
+    if (return_bootstrap_matrix == True) and (return_pure_nodes_indices == True):
+        return Theta, B, repeats, J
+    elif (return_bootstrap_matrix == True) and (return_pure_nodes_indices == False):
         return Theta, B, repeats
-    if (return_pure_nodes_indices == True) and (return_bootstrap_matrix == False):
+    elif (return_bootstrap_matrix == False) and (return_pure_nodes_indices == True):
         return Theta, B, J
     else:
-        return Theta, B, J
+        return Theta, B
 
 def SPOC_from_UL(U, Lambda, **kwargs):
     '''
@@ -452,7 +483,7 @@ def SPOC_get_Z_from_UL(U, L, n_clusters, **kwargs):
     if "return_pure_nodes_indices" in kwargs:
         return_pure_nodes_indices = kwargs["pure_nodes_indices"]
     else:
-        kwargs["return_pures_nodes_indices"] = False
+        kwargs["return_pure_nodes_indices"] = False
         return_pure_nodes_indices = False
 
     if return_pure_nodes_indices == True:
@@ -469,7 +500,7 @@ def SPOC_get_Z(A, n_clusters, **kwargs):
     '''
 
     if "return_pure_nodes_indices" in kwargs:
-        return_pures_nodes_indices = kwargs["pure_nodes_indices"]
+        return_pure_nodes_indices = kwargs["pure_nodes_indices"]
     else:
         kwargs["return_pure_nodes_indices"] = False
         return_pure_nodes_indices = False

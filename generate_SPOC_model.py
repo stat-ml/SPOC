@@ -136,6 +136,7 @@ def generate_theta(n_nodes, n_clusters, pure_nodes_number, **kwargs):
     **kwargs:
     alphas: array in np.random.dirichlet
     pure_nodes_indices: array with indices of pure node rows in Theta matrix
+    seed: np.random.seed value
 
     returns
     _______________________________________________
@@ -310,6 +311,11 @@ def generate_a(n_nodes, n_clusters, pure_nodes_number, **kwargs):
     if "seed" in kwargs:
         seed = kwargs["seed"]
         np.random.seed(seed=seed)
+    
+    if "reflect" in kwargs:
+        reflect = kwargs["reflect"]
+    else:
+        reflect = False
 
     P, Theta, B = generate_p(n_nodes, n_clusters, pure_nodes_number, **kwargs)
     A = P_to_A(P, reflect=reflect)

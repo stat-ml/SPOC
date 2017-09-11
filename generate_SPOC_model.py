@@ -6,9 +6,11 @@ import scipy.sparse.linalg
 import numpy as np
 import seaborn as sns
 from itertools import permutations
+from scipy.stats import spearmanr
 from cvxpy import *
 
 eigs = sp.sparse.linalg.eigs
+
 
 def find_permutation_Theta(Theta, Theta_exp):
     '''
@@ -36,6 +38,34 @@ def find_permutation_Theta(Theta, Theta_exp):
             min_theta = Theta_exp[:, perm]
 
     return (error / np.linalg.norm(Theta, ord='fro'), min_theta)
+
+
+def find_permutation_spearmanr(Theta, Theta_exp):
+    '''
+    function to find permutation of Theta cols which minimize mean of
+    a Spearman rank-order correlation coefficient:
+        https://docs.scipy.org/doc/scipy-0.15.1/reference/generated/scipy.stats.spearmanr.html
+
+    the output is tuple = (the relative error, optimal Theta_exp)
+
+    returns
+    _______________________________________________
+    relative error: float
+    min_theta: nd.array with shape == Theta.shape
+    '''
+
+    assert Theta.shape == Theta_exp.shape, "Theta.shape != Theta_exp.shape"
+    error = np.inf
+    min_theta = np.zeros_like(Theta_exp)
+    spearmanr_scorers = spearmanr(Theta, Theta_exp).correlation[Theta.shape[1]:, 0:Theta.shape[1]]
+    for perm in permutations(range(Theta.shape[1])):
+        temple_error = -np.mean([spearmanr_scorers[i, j] for i, j in enumerate(perm)])
+        if temple_error < error:
+            error = temple_error
+            min_theta = Theta_exp[:, perm]
+
+    return -error, min_theta
+
 
 
 def find_permutation_B(B, B_exp):

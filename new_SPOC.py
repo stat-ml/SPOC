@@ -2,7 +2,7 @@ import scipy as sp
 import scipy.sparse.linalg
 from scipy.spatial import ConvexHull
 import numpy as np
-from cvxpy import *
+import cvxpy
 
 eigs = sp.sparse.linalg.eigs
 
@@ -196,7 +196,7 @@ def get_F_B_bootstrap(U, Lambda, repeats, std_num = 3, **kwargs):
     ### and define f_j = u_i for
     new_U = U.copy()
     J = []
-    F = np.zeros((k,k))
+    F = np.zeros((k, k))
     i = 0
 
     while i < k:
@@ -259,11 +259,11 @@ def get_Theta(U, F, Lambda = None, **kwargs):
     n_clusters = U.shape[1]
 
     if use_cvxpy:
-        Theta = Variable(rows=n_nodes, cols=n_clusters)
-        constraints = [sum_entries(Theta[i, :]) == 1 for i in range(n_nodes)]
+        Theta = cvxpy.Variable(rows=n_nodes, cols=n_clusters)
+        constraints = [cvxpy.sum_entries(Theta[i, :]) == 1 for i in range(n_nodes)]
         constraints += [Theta[i, j] >= 0 for i in range(n_nodes) for j in range(n_clusters)]
-        obj = Minimize(norm(U - Theta * F, 'fro'))
-        prob = Problem(obj, constraints)
+        obj = cvxpy.Minimize(cvxpy.norm(U - Theta * F, 'fro'))
+        prob = cvxpy.Problem(obj, constraints)
         prob.solve()
         return np.array(Theta.value)
 
@@ -304,7 +304,7 @@ def SPOC(A, n_clusters, **kwargs):
 
     '''
 
-    U, Lambda = get_U_L(A, k=n_clusters)
+    U, Lambda = get_U_L(1.0 * A, k=n_clusters)
 
     if "return_pure_nodes_indices" in kwargs:
         return_pure_nodes_indices = kwargs["return_pure_nodes_indices"]
@@ -321,6 +321,9 @@ def SPOC(A, n_clusters, **kwargs):
         theta = get_Theta(U, F, Lambda, **kwargs)
         return theta, B
 
+def calculate_C_from_UL(U, L):
+    return np.dot(U, np.diag(1 / L))
+
 def calculate_C(A, n_clusters, ):
     '''
     calculate C matrix from adjacency matrix A
@@ -330,7 +333,7 @@ def calculate_C(A, n_clusters, ):
     C: nd.array with shape (n_nodes, n_clusters)
     '''
     U, L = get_U_L(A, n_clusters)
-    return np.dot(U, np.linalg.inv(np.diag(L)))
+    return np.dot(U, np.diag(1/L))
 
 def calculate_mean_cov_U(A, C, n_repetitions = 30, **kwargs):
     '''
@@ -364,20 +367,28 @@ def calculate_mean_cov_U(A, C, n_repetitions = 30, **kwargs):
         assert bootstrap_type == "random_indices" or bootstrap_type == "random_weights", "Wrong bootstrap type"
     else:
         bootstrap_type = "random_weights"
-        
-    repeat_matrix_array = []   
-    
+
     if bootstrap_type == "random_weights":
+        A = A.copy()
+        A = A.toarray()
+        print("type A:", type(A))
+        repeat_matrix_array = np.zeros((n_repetitions, A.shape[0], C.shape[1]))
+        nonzeros = np.nonzero(A)
+        non_zero_count = nonzeros[0].shape[0]
+        print("non_zero_count:", non_zero_count)
         for i in range(n_repetitions):
-            bootstrap_weights = np.random.normal(loc=1, scale=1, size=(n_nodes, n_nodes))
-            repeat_matrix_array.append( np.dot(A * bootstrap_weights, C) )
+            print('.', end="")
+            A[nonzeros] = np.random.normal(loc=1, scale=1, size=(non_zero_count,))
+            repeat_matrix_array[i] = np.dot(A, C)
+        print()
     else:
         for i in range(n_repetitions):
+            repeat_matrix_array = []
             bootstrap_indices = np.random.randint(low=0, high=n_nodes, size=n_nodes)
-            repeat_matrix_array.append( np.dot(A[:, bootstrap_indices], C[bootstrap_indices, :]) )
+            repeat_matrix_array.append(np.dot(A[:, bootstrap_indices], C[bootstrap_indices, :]))
+        repeat_matrix_array = np.array(repeat_matrix_array) 
 
     U = np.mean(repeat_matrix_array, axis=0)
-    repeat_matrix_array = np.array(repeat_matrix_array)
     std_array = []
 
     if "return_bootstrap_matrix" in kwargs:
@@ -423,8 +434,8 @@ def SPOC_bootstrap(A, n_clusters, n_repetitions=30, std_num=3, **kwargs):
     else:
         bootstrap_type = "random_weights"
         
-    U, Lambda = get_U_L(A, n_clusters)
-    C = calculate_C(A, n_clusters)
+    U, Lambda = get_U_L( 1.0 * A, n_clusters)
+    C = calculate_C_from_UL(U, Lambda)
     U_mean, std, repeats = calculate_mean_cov_U(A, C, n_repetitions, return_bootstrap_matrix=True, bootstrap_type=bootstrap_type)
     F, B, J = get_F_B_bootstrap(U, Lambda, repeats, std_num=std_num, return_pure_nodes_indices=True)
     Theta = get_Theta(U=U_mean, F=F, Lambda = Lambda, use_cvxpy=False)
@@ -557,3 +568,28 @@ def euclidean_proj_simplex(v, s=1):
     # compute the projection by thresholding v using theta
     w = (v - theta).clip(min=0)
     return w
+
+if __name__ == '__main__':
+    #minitest
+    import pandas as pd
+    from generate_SPOC_model import *
+
+    n_nodes = 500
+    n_clusters = 2
+    pure_nodes = 2
+    indices = np.arange(pure_nodes)
+    B = np.diag([0.3, 0.6])
+    seed = 42
+
+    Theta = generate_theta(n_nodes=n_nodes, n_clusters=n_clusters, pure_nodes_number=pure_nodes, \
+                           pure_nodes_indices=indices, seed=seed)
+    P = Theta.dot(B).dot(Theta.T)
+    A = P_to_A(P, reflect=True, seed=0)
+
+    Theta = pd.DataFrame(Theta, columns=["cluster1", "cluster2"])
+
+    Theta["pure_node"] = Theta.cluster1.apply(lambda x: 1 if ((x == 1) or (x == 0)) else 0)
+    U, L = get_U_L(A, k=2)
+
+    theta, b, repeats = SPOC_bootstrap(A, 2, n_repetitions=500, regularization=0,
+                                       return_bootstrap_matrix=True)

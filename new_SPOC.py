@@ -370,20 +370,18 @@ def calculate_mean_cov_U(A, C, n_repetitions = 30, **kwargs):
 
     if bootstrap_type == "random_weights":
         A = A.copy()
-        A = A.toarray()
-        print("type A:", type(A))
+        if hasattr(A, "toarray"):
+            A = A.toarray()
+        
         repeat_matrix_array = np.zeros((n_repetitions, A.shape[0], C.shape[1]))
         nonzeros = np.nonzero(A)
         non_zero_count = nonzeros[0].shape[0]
-        print("non_zero_count:", non_zero_count)
         for i in range(n_repetitions):
-            print('.', end="")
             A[nonzeros] = np.random.normal(loc=1, scale=1, size=(non_zero_count,))
             repeat_matrix_array[i] = np.dot(A, C)
-        print()
     else:
+        repeat_matrix_array = []
         for i in range(n_repetitions):
-            repeat_matrix_array = []
             bootstrap_indices = np.random.randint(low=0, high=n_nodes, size=n_nodes)
             repeat_matrix_array.append(np.dot(A[:, bootstrap_indices], C[bootstrap_indices, :]))
         repeat_matrix_array = np.array(repeat_matrix_array) 

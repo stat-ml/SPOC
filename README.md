@@ -19,7 +19,7 @@ Research of overlapping community detection. We present improvements of existing
 
 
 [Data]:	 	https://github.com/premolab/SPOC/tree/makeup/data
-[Exps]: 	https://github.com/premolab/SPOC/tree/makeup/experiments)
+[Exps]: 	https://github.com/premolab/SPOC/tree/makeup/experiments
 [Exp1]: 	https://github.com/premolab/SPOC/tree/makeup/experiments/real_data
 [Exp2]: 	https://github.com/premolab/SPOC/tree/makeup/experiments/params
 [Pics]: 	https://github.com/premolab/SPOC/tree/makeup/pictures

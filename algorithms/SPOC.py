@@ -1,22 +1,22 @@
+import numpy as np
 import scipy as sp
 from scipy.sparse.linalg import eigs
 from scipy.spatial import ConvexHull
-import numpy as np
 
-from cvxpy.expressions.variables.semidef_var import Semidef
 from cvxpy import abs, log_det, sum_entries, norm
+from cvxpy.settings import SCS, CVXOPT
 from cvxpy.problems.objective import Minimize
 from cvxpy.problems.problem import Problem
-from cvxpy.settings import SCS, CVXOPT
+from cvxpy.expressions.variables.semidef_var import Semidef
 
-class SPOC:
+class SPOC(object):
     '''
     Entire classical SPOC method and bootstrap realization of SPOC algorithm
 
     A: adjacency matrix of a graph
     n_clusters: number of clusters
     n_repetitions: number of repetitions in bootstrap
-    std_num: ?????????????????????????????????????
+    std_num: influence on size of ellipsoid
     
     **kwargs:
 
@@ -51,38 +51,40 @@ class SPOC:
     J: list with selected nodes (check **kwargs)
 
     '''
+    __version__ = '1.0'
 
-    def __init__(self, A, n_clusters, **kwargs):
-        self.A = 1.0 * A
+    def __init__(self, A = None, n_clusters = None, **kwargs):
+        
+        self.A = A        
         self.n_clusters = n_clusters
-
-        self.use_cvxpy                  = kwargs.get('use_cvxpy',                  False)
-        self.use_convex_hull            = kwargs.get('use_convex_hull',            False)
-        self.use_ellipsoid              = kwargs.get('use_ellipsoid',              False)
-        self.return_pure_nodes_indices  = kwargs.get('return_pure_nodes_indices',  False)
-        self.use_bootstrap              = kwargs.get('use_bootstrap',              False)
-        self.return_bootstrap_matrix    = kwargs.get('return_bootstrap_matrix',    False)
-        self.bootstrap_type             = kwargs.get('bootstrap_type',             'random_weights')
-        self.std_num                    = kwargs.get('std_num',                    3)
-        self.n_repetitions              = kwargs.get('n_repetitions',              30)
-
-
-
+        
+        self.std_num = kwargs.get('std_num', 3)
+        self.use_cvxpy = kwargs.get('use_cvxpy', False)
+        self.n_repetitions = kwargs.get('n_repetitions', 30)
+        self.use_ellipsoid = kwargs.get('use_ellipsoid', False)
+        self.use_bootstrap = kwargs.get('use_bootstrap', False)
+        self.bootstrap_type = kwargs.get('bootstrap_type', 'random_weights')
+        self.use_convex_hull = kwargs.get('use_convex_hull', False)
+        self.return_bootstrap_matrix = kwargs.get('return_bootstrap_matrix', False)
+        self.return_pure_nodes_indices = kwargs.get('return_pure_nodes_indices', False)
+        
     def fit(self, **kwargs):
 
-        self.A                          = kwargs.get('A',                          self.A)
-        self.n_clusters                 = kwargs.get('n_clusters',                 self.n_clusters)
-        self.use_cvxpy                  = kwargs.get('use_cvxpy',                  self.use_cvxpy)
-        self.use_convex_hull            = kwargs.get('use_convex_hull',            self.use_convex_hull)
-        self.use_ellipsoid              = kwargs.get('use_ellipsoid',              self.use_ellipsoid)
-        self.return_pure_nodes_indices  = kwargs.get('return_pure_nodes_indices',  self.return_pure_nodes_indices)
-        self.use_bootstrap              = kwargs.get('use_bootstrap',              self.use_bootstrap)
-        self.return_bootstrap_matrix    = kwargs.get('return_bootstrap_matrix',    self.return_bootstrap_matrix)
-        self.bootstrap_type             = kwargs.get('bootstrap_type',             self.bootstrap_type)
-        self.std_num                    = kwargs.get('std_num',                    self.std_num)
-        self.n_repetitions              = kwargs.get('n_repetitions',              self.n_repetitions)
+        self.A = kwargs.get('A', self.A)
+        self.n_clusters = kwargs.get('n_clusters', self.n_clusters)
         
-
+        self.std_num = kwargs.get('std_num', self.std_num)
+        self.use_cvxpy = kwargs.get('use_cvxpy', self.use_cvxpy)
+        self.use_ellipsoid = kwargs.get('use_ellipsoid', self.use_ellipsoid)
+        self.use_bootstrap = kwargs.get('use_bootstrap', self.use_bootstrap)
+        self.n_repetitions = kwargs.get('n_repetitions', self.n_repetitions)
+        self.bootstrap_type = kwargs.get('bootstrap_type', self.bootstrap_type)
+        self.use_convex_hull = kwargs.get('use_convex_hull', self.use_convex_hull)
+        self.return_bootstrap_matrix = kwargs.get('return_bootstrap_matrix', self.return_bootstrap_matrix)
+        self.return_pure_nodes_indices = kwargs.get('return_pure_nodes_indices', self.return_pure_nodes_indices)
+        
+        assert np.all(self.A != None) or self.n_clusters != None, "Parametrs A or n_clusters is None"
+        self.A = 1.0 * self.A
         U, Lambda = self.get_U_L(self.A, self.n_clusters)
 
         if self.use_bootstrap == False:
@@ -94,7 +96,7 @@ class SPOC:
                 return theta, B
         else:
             C = self.calculate_C_from_UL(U, Lambda)
-            U_mean, std, repeats = self.calculate_mean_cov_U(A, C, self.n_repetitions)
+            U_mean, std, repeats = self.calculate_mean_cov_U(self.A, C, self.n_repetitions)
             F, B, J = self.get_F_B_bootstrap(U, Lambda, repeats, std_num=self.std_num)
             Theta = self.get_Theta(U=U_mean, F=F, Lambda = Lambda, use_cvxpy=False)
             if (self.return_bootstrap_matrix == True) and (self.return_pure_nodes_indices == True):
@@ -120,7 +122,6 @@ class SPOC:
         U: nd.array with shape (n_nodes, n_clusters)
         L: nd.array with shape (k,)
         '''
-
         Lambda, U = eigs(matrix, k=k, which='LR')
         Lambda, U = np.real(Lambda), np.real(U)
 
@@ -197,7 +198,6 @@ class SPOC:
             return new_U
 
     def get_F_B(self, U, Lambda):
-
         '''
         compute F and B matrices from U matrix and L eigenvalues
 
@@ -225,7 +225,6 @@ class SPOC:
         B: nd.array with shape == F.shape
         J: list of pretenders to be pure nodes (check **kwargs argument)
         '''
-
         k = U.shape[1]
 
         if self.use_ellipsoid:
@@ -284,7 +283,6 @@ class SPOC:
 
         requires: cvxpy (http://www.cvxpy.org/en/latest/)
         '''
-
         assert U.shape[1] == F.shape[0] == F.shape[1], "U.shape[1] != F.shape"
         n_nodes = U.shape[0]
         n_clusters = U.shape[1]
@@ -297,7 +295,6 @@ class SPOC:
             prob = Problem(obj, constraints)
             prob.solve()
             return np.array(Theta.value)
-
         else:
             assert Lambda is not None, "Lambda is None object"
             projector = F.T.dot(np.linalg.inv(F.dot(F.T)))
@@ -306,7 +303,6 @@ class SPOC:
             return theta_simplex_proj
 
     def euclidean_proj_simplex(self, v, s=1):
-
         '''
         Compute the Euclidean projection on a positive simplex
         Solves the optimisation problem (using the algorithm from [1]):
@@ -333,7 +329,6 @@ class SPOC:
             International Conference on Machine Learning (ICML 2008)
             http://www.cs.berkeley.edu/~jduchi/projects/DuchiSiShCh08.pdf
         '''
-
         assert s > 0, "Radius s must be strictly positive (%d <= 0)" % s
         n, = v.shape  # will raise ValueError if v is not 1-D
         # check if we are already on the simplex
@@ -386,7 +381,6 @@ class SPOC:
         repeat_matrix_array: nd.array with shape (n_repetitions, n_nodes, n_clusters)
         the result of bootstrap
         '''
-
         assert A.shape[0] == C.shape[0], "A.shape[0] != U.shape[0]"
         n_nodes = A.shape[0]
         n_clusters = C.shape[1]
@@ -443,7 +437,6 @@ class SPOC:
         J: list of pretenders to be pure nodes (check **kwargs argument)
         '''
         k = U.shape[1]
-
         ### find k the biggest vectors in u_i
         ### and define f_j = u_i for
         new_U = U.copy()

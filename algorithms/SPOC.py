@@ -73,7 +73,7 @@ class SPOC(object):
         self.return_pure_nodes_indices = return_pure_nodes_indices
 
 
-    def update_params(self, **kwargs):
+    def __update_params(self, **kwargs):
         '''
         Parametrs
         ---------
@@ -114,26 +114,26 @@ class SPOC(object):
             the result of bootstrap
         '''   
 
-        self.update_params(**kwargs)
+        self.__update_params(**kwargs)
         
         if np.all(self.A == None) or self.n_clusters == None:
             raise ValueError("Parametrs A or n_clusters is None")
 
         self.A = 1.0 * self.A
-        U, Lambda = self.get_U_L(self.A, self.n_clusters)
+        U, Lambda = self.__get_U_L(self.A, self.n_clusters)
 
         if self.use_bootstrap == False:
-            F, B, J = self.get_F_B(U, Lambda)
-            Theta = self.get_Theta(U, F)
+            F, B, J = self.__get_F_B(U, Lambda)
+            Theta = self.__get_Theta(U, F)
             if self.return_pure_nodes_indices == True:
                 return Theta, B, J
             else:
                 return Theta, B
         else:
-            C = self.calculate_C_from_UL(U, Lambda)
-            U_mean, repeats = self.calculate_mean_cov_U(self.A, C)
-            F, B, J = self.get_F_B_bootstrap(U, Lambda, repeats,)
-            Theta = self.get_Theta(U=U_mean, F=F)
+            C = self.__calculate_C_from_UL(U, Lambda)
+            U_mean, repeats = self.__calculate_mean_cov_U(self.A, C)
+            F, B, J = self.__get_F_B_bootstrap(U, Lambda, repeats,)
+            Theta = self.__get_Theta(U=U_mean, F=F)
             if (self.return_bootstrap_matrix == True) and \
                (self.return_pure_nodes_indices == True):
                 return Theta, B, J, repeats
@@ -147,7 +147,7 @@ class SPOC(object):
                 return Theta, B
 
 
-    def get_U_L(self, matrix, n_clusters):
+    def __get_U_L(self, matrix, n_clusters):
         '''
         Eigenvalue decomposition of matrix
         
@@ -177,7 +177,7 @@ class SPOC(object):
                 U[:, index] = -1 * U[:, index]
         return U, Lambda
 
-    def get_Q(self, U):
+    def __get_Q(self, U):
         '''
         Get positive semidefinite Q matrix of ellipsoid from U[i,:] vectors
         for any* u_i in U[i,:] : abs(u_i.T * Q * u_i) <= 1
@@ -222,7 +222,7 @@ class SPOC(object):
         return Q
 
 
-    def transform_U(self, U, Q, return_transform_matrix=False):
+    def __transform_U(self, U, Q, return_transform_matrix=False):
         '''
         transform U[i,:] coordinates to new basis where ellipsoid is a sphere
 
@@ -262,7 +262,7 @@ class SPOC(object):
             return new_U
 
 
-    def get_F_B(self, U, Lambda):
+    def __get_F_B(self, U, Lambda):
         '''
         compute F and B matrices from U matrix and L eigenvalues
 
@@ -286,9 +286,9 @@ class SPOC(object):
         k = U.shape[1]
 
         if self.use_ellipsoid:
-            Q = self.get_Q(U)
-            new_U, transform_matrix = self.transform_U(
-                                    U, Q, return_transform_matrix=True)
+            Q = self.__get_Q(U)
+            new_U, transform_matrix = self.__transform_U(U, Q,
+                                      return_transform_matrix=True)
         else:
             new_U = U.copy()
 
@@ -318,7 +318,7 @@ class SPOC(object):
         return F, B, list(J)
 
 
-    def get_Theta(self, U, F):
+    def __get_Theta(self, U, F):
         '''
         Function to find Theta from U and F via convex optimization in cvxpy
         or euclidean_proj_simplex
@@ -365,12 +365,12 @@ class SPOC(object):
             projector = F.T.dot(np.linalg.inv(F.dot(F.T)))
             theta = U.dot(projector)
             theta_simplex_proj = np.array([
-                self.euclidean_proj_simplex(x) for x in theta
+                self.__euclidean_proj_simplex(x) for x in theta
             ])
             return theta_simplex_proj
 
 
-    def euclidean_proj_simplex(self, v, s=1):
+    def __euclidean_proj_simplex(self, v, s=1):
         '''
         Compute the Euclidean projection on a positive simplex
         Solves the optimisation problem (using the algorithm from [1]):
@@ -426,7 +426,7 @@ class SPOC(object):
         return w
 
 
-    def calculate_C_from_UL(self, U, Lambda):
+    def __calculate_C_from_UL(self, U, Lambda):
         '''
         Calculate C matrix from matrices U and Lambda 
 
@@ -446,7 +446,7 @@ class SPOC(object):
         return np.dot(U, np.diag(1 / Lambda))
 
 
-    def calculate_mean_cov_U(self, A, C):
+    def __calculate_mean_cov_U(self, A, C):
         '''
         Function to make bootstrap with U coordinates
 
@@ -512,7 +512,7 @@ class SPOC(object):
         return U, repeat_matrix_array
 
 
-    def get_F_B_bootstrap(self, U, Lambda, repeats):
+    def __get_F_B_bootstrap(self, U, Lambda, repeats):
         '''
         Compute F and B matrices from U matrix and L eigenvalues
 

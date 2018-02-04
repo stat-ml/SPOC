@@ -1,9 +1,11 @@
 # SPOC
 
-Research of overlapping community detection. We present improvements of existing algorithm successive projection overlapping clustering ([SPOC][SPOC]). 
+Research of overlapping community detection. 
+We present improvements of existing algorithm successive projection
+overlapping clustering ([SPOC][SPOC]). 
 
 
-## Stucture of repository
+# Stucture of repository
 
 
 * [Data][Data]
@@ -27,4 +29,24 @@ Research of overlapping community detection. We present improvements of existing
 [Algs]: 	https://github.com/premolab/SPOC/tree/makeup/algorithms
 [GeoNMF]:	https://github.com/premolab/SPOC/tree/makeup/algorithms/GeoNMF.m
 [ver1.0]:	https://github.com/premolab/SPOC/tree/makeup/algorithms/SPOC.py
-[SPOC]:		https://www.researchgate.net/publication/223658011_The_successive_projections_algorithm_for_variable_selection_in_spectroscopic_multicomponent_analysis
+[SPOC]:		https://arxiv.org/abs/1707.01350
+
+# Acknowledgment
+
+The research was supported by the Russian Science Foundation grant (project 14-50-00150).
+ The authors would like to thank Nikita Zhivotovskiy and Alexey Naumov 
+ for very insightful discussions on matrix concentration. 
+ The help of Emilie Kaufmann, who provided the code of SAAC algorithm, 
+ is especially acknowledged.
+
+
+# BibTex
+
+```
+@article{panov17
+    author = {Panov Maxim and Slavnov Konstantin and Ushakov Roman},
+    title = {Consistent Estimation of Mixed Memberships with Successive Projections},
+    journal = {COMPLEX NETWORKS 2017},
+    year = {2017},
+    url = {https://arxiv.org/abs/1707.01350}
+```

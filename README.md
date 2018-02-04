@@ -31,6 +31,14 @@ overlapping clustering ([SPOC][SPOC]).
 [ver1.0]:	https://github.com/premolab/SPOC/tree/makeup/algorithms/SPOC.py
 [SPOC]:		https://arxiv.org/abs/1707.01350
 
+# Installation 
+
+```commandline
+git clone https://github.com/premolab/SPOC
+cd SPOC
+python setup.py install
+```
+
 # Acknowledgment
 
 The research was supported by the Russian Science Foundation grant (project 14-50-00150).

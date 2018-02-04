@@ -8,4 +8,10 @@ setup(name='spoc',
       author_email='panov.maxim@gmail.com ',
       license='MIT',
       packages=['algorithms'],
+      install_requires=[
+          'numpy>=1.13.1',
+          'scipy>=0.19.1',
+          'cvxpy>=0.4.11',
+          'cvxopt>=1.1.9',
+      ],
       zip_safe=False)

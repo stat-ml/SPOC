@@ -212,7 +212,7 @@ class SPOC(object):
 
         obj = Minimize(-log_det(Q))
         prob = Problem(obj, constraints)
-        _ = prob.solve()
+        _ = prob.solve(solver="CVXOPT")
         Q = np.array(Q.value)
         return Q
 

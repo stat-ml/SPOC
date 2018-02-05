@@ -42,7 +42,7 @@ def find_permutation_spearmanr(Theta, Theta_exp):
     """
     function to find permutation of Theta cols which minimize mean of
     a Spearman rank-order correlation coefficient:
-        https://docs.scipy.org/doc/scipy-0.15.1/reference/generated/scipy.stats.spearmanr.html
+    https://docs.scipy.org/doc/scipy-0.15.1/reference/generated/scipy.stats.spearmanr.html
 
     the output is tuple = (the relative error, optimal Theta_exp)
 

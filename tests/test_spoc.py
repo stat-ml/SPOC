@@ -1,5 +1,5 @@
 import pytest
-from algorithms import spoc, generate_spoc_model
+from spoc import spoc, generate_spoc_model
 
 
 @pytest.fixture()

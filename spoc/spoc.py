@@ -1,4 +1,3 @@
-
 # coding: utf-8
 
 import numpy as np
@@ -122,12 +121,12 @@ class SPOC(object):
         if self.use_bootstrap:
             C = self._calculate_C_from_UL(U, Lambda)
             U_mean, repeats = self._calculate_mean_cov_U(self.A, C)
-            F, B, J = self._get_F_B_bootstrap(U, Lambda, repeats, )
+            F, B, J = self._get_F_B_bootstrap(U, Lambda, repeats)
             Theta = self._get_Theta(U=U_mean, F=F)
             if self.return_bootstrap_matrix and self.return_pure_nodes_indices:
                 return Theta, B, J, repeats
-            elif self.return_bootstrap_matrix and\
-                            self.return_pure_nodes_indices is False:
+            elif self.return_bootstrap_matrix \
+                    and self.return_pure_nodes_indices is False:
                 return Theta, B, repeats
             elif self.return_bootstrap_matrix is False and \
                     self.return_pure_nodes_indices:
@@ -471,7 +470,7 @@ class SPOC(object):
             Number of repetitions in bootstrap
 
         bootstrap_type: string, oprional, default: 'random_weights'
-            Type on bootstrap realization of SPOC algorithms;
+            Type on bootstrap realization of SPOC spoc;
             If 'random_indices' then algorithm use random indeces;
             If 'random_weights' then algorithm use random weights (default).
         """

@@ -1,7 +1,7 @@
 import sys
 import pytest
 import numpy as np
-from algorithms import generate_spoc_model
+from spoc import generate_spoc_model
 
 
 def test_theta_error_zero():

@@ -31,6 +31,11 @@ overlapping clustering ([SPOC][SPOC]).
 [ver1.0]:	https://github.com/premolab/SPOC/tree/makeup/algorithms/SPOC.py
 [SPOC]:		https://arxiv.org/abs/1707.01350
 
+```
+Build status
+```
+[![Build Status](https://travis-ci.com/premolab/SPOC.svg?token=8Qyc7LdQ3MUqpozqRDhU&branch=master)](https://travis-ci.com/premolab/SPOC)
+
 # Installation 
 
 ```commandline
@@ -38,6 +43,12 @@ git clone https://github.com/premolab/SPOC
 cd SPOC
 python setup.py install
 ```
+
+# Quick Start
+
+Check [example](examples/example.ipynb).
+
+![](examples/spectre.png)
 
 # Acknowledgment
 
@@ -51,7 +62,7 @@ The research was supported by the Russian Science Foundation grant (project 14-5
 # BibTex
 
 ```
-@article{panov17
+@article{panov17,
     author = {Panov Maxim and Slavnov Konstantin and Ushakov Roman},
     title = {Consistent Estimation of Mixed Memberships with Successive Projections},
     journal = {COMPLEX NETWORKS 2017},

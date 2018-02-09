@@ -55,14 +55,12 @@ class SPOC(object):
         If True then also returns bootstrap result.
     """
 
-    def __init__(self, A, n_clusters, use_bootstrap=False, use_ellipsoid=False,
+    def __init__(self, use_bootstrap=False, use_ellipsoid=False,
                  use_convex_hull=False, use_cvxpy=False,
                  bootstrap_type='random_weights', n_repetitions=30,
                  std_num=3.0, return_bootstrap_matrix=False,
                  return_pure_nodes_indices=False):
 
-        self.A = A
-        self.n_clusters = n_clusters
         self.std_num = std_num
         self.use_cvxpy = use_cvxpy
         self.n_repetitions = n_repetitions
@@ -91,7 +89,7 @@ class SPOC(object):
         for param in parameters:
             setattr(self, param, kwargs.get(param, getattr(self, param)))
 
-    def fit(self, **kwargs):
+    def fit(self, A, n_clusters, **kwargs):
         """
         Parameters
         ---------
@@ -113,6 +111,8 @@ class SPOC(object):
             the result of bootstrap
         """
 
+        self.A = A
+        self.n_clusters = n_clusters
         self._update_params(**kwargs)
 
         self.A = 1.0 * self.A

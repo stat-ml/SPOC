@@ -67,5 +67,6 @@ The research was supported by the Russian Science Foundation grant (project 14-5
     title = {Consistent Estimation of Mixed Memberships with Successive Projections},
     journal = {COMPLEX NETWORKS 2017},
     year = {2017},
-    url = {https://arxiv.org/abs/1707.01350}
+    url = {https://arxiv.org/abs/1707.01350},
+}
 ```

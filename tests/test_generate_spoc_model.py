@@ -7,20 +7,18 @@ from spoc import generate_spoc_model
 def test_theta_error_zero():
     right_theta = np.array([[0, 1], [1, 0]])
     exp_theta = np.array([[1, 0], [0, 1]])
-    error, perm = generate_spoc_model.find_permutation_Theta(right_theta,
-                                                             exp_theta)
+    error = generate_spoc_model.find_theta_error(right_theta,
+                                                 exp_theta)
     assert abs(error - 0.0) < sys.float_info.epsilon
-    assert np.allclose(perm, np.array([[0, 1], [1, 0]]))
 
 
 def test_theta_error():
     right_theta = np.array([[0, 1], [1, 0]])
     exp_theta = np.array([[1, 1], [1, 1]])
 
-    error, perm = generate_spoc_model.find_permutation_Theta(right_theta,
-                                                             exp_theta)
+    error = generate_spoc_model.find_theta_error(right_theta,
+                                                 exp_theta)
     assert abs(error - 1.0) < sys.float_info.epsilon
-    assert np.allclose(perm, np.array([[1, 1], [1, 1]]))
 
 
 def test_b_error_zero():
@@ -28,9 +26,8 @@ def test_b_error_zero():
     right_b = np.diag([1, 2, 3, 4, 5])
     exp_b = np.diag([3, 2, 1, 5, 4])
 
-    error, perm = generate_spoc_model.find_permutation_B(right_b, exp_b)
+    error = generate_spoc_model.find_b_error(right_b, exp_b)
     assert abs(error - 0.0) < sys.float_info.epsilon
-    assert np.allclose(perm, right_b)
 
 
 def test_create_pure_node_row():
@@ -62,16 +59,16 @@ def test_generate_theta():
     right_theta = np.diag([1] * 5)
 
     generated_theta = generate_spoc_model.generate_theta(5, 5, 5)
-    err, perm =  generate_spoc_model.find_permutation_Theta(right_theta,
-                                                            generated_theta)
-    assert (err - 0.0) < sys.float_info.epsilon
+    error = generate_spoc_model.find_theta_error(right_theta,
+                                                 generated_theta)
+    assert (error - 0.0) < sys.float_info.epsilon
 
 
 def test_generate_theta_pure_node_indices():
 
     pure_rows_theta = np.array([[1, 0, 0, 0, 0],
-                                        [0, 1, 0, 0, 0],
-                                        [0, 0, 1, 0, 0]])
+                                [0, 1, 0, 0, 0],
+                                [0, 0, 1, 0, 0]])
 
     theta = generate_spoc_model.generate_theta(10, 5, 3,
                                                pure_nodes_indices=[4, 5, 6])

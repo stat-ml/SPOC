@@ -10,7 +10,7 @@ from scipy.stats import spearmanr
 eigs = sp.sparse.linalg.eigs
 
 
-def find_permutation_Theta(Theta, Theta_exp):
+def find_theta_error(Theta, Theta_exp):
     """
     function to find permutation of Theta cols which minimize
     Frobenius norm:
@@ -22,20 +22,17 @@ def find_permutation_Theta(Theta, Theta_exp):
     returns
     _______________________________________________
     relative error: float
-    min_theta: nd.array with shape == Theta.shape
     """
 
     assert Theta.shape == Theta_exp.shape, "Theta.shape != Theta_exp.shape"
     error = np.inf
-    min_theta = np.zeros_like(Theta_exp)
 
     for perm in permutations(range(Theta.shape[1])):
         temple_error = np.linalg.norm(Theta - Theta_exp[:, perm], ord='fro')
         if temple_error < error:
             error = temple_error
-            min_theta = Theta_exp[:, perm]
 
-    return error / np.linalg.norm(Theta, ord='fro'), min_theta
+    return error / np.linalg.norm(Theta, ord='fro')
 
 
 def find_permutation_spearmanr(Theta, Theta_exp):
@@ -49,7 +46,6 @@ def find_permutation_spearmanr(Theta, Theta_exp):
     returns
     _______________________________________________
     relative error: float
-    min_theta: nd.array with shape == Theta.shape
     """
 
     assert Theta.shape == Theta_exp.shape, "Theta.shape != Theta_exp.shape"
@@ -63,12 +59,11 @@ def find_permutation_spearmanr(Theta, Theta_exp):
                                  for i, j in enumerate(perm)])
         if temple_error < error:
             error = temple_error
-            min_theta = Theta_exp[:, perm]
 
-    return -error, min_theta
+    return -error
 
 
-def find_permutation_B(B, B_exp):
+def find_b_error(B, B_exp):
     """
     function to find permutation of Theta cols and rows
     which minimize Frobenius norm:
@@ -80,12 +75,10 @@ def find_permutation_B(B, B_exp):
     returns
     _______________________________________________
     relative error: float
-    min_B: nd.array with shape == B.shape
     """
 
     assert B.shape == B_exp.shape, "B.shape != B_exp.shape"
     error = np.inf
-    min_B = np.zeros_like(B_exp)
 
     for perm in permutations(range(B.shape[1])):
         perm_B = B_exp[:, perm]
@@ -93,9 +86,8 @@ def find_permutation_B(B, B_exp):
         temple_error = np.linalg.norm(B - perm_B, ord='fro')
         if temple_error < error:
             error = temple_error
-            min_B = perm_B
 
-    return error, min_B
+    return error
 
 
 def generate_graph(n, frac, p, q, **kwargs):

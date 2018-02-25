@@ -48,7 +48,7 @@ python setup.py install
 
 Check [example](examples/example.ipynb).
 
-![](examples/spectre.png)
+![](examples/spectrum.png)
 
 # Acknowledgment
 

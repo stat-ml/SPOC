@@ -17,18 +17,20 @@ overlapping clustering ([SPOC][SPOC]).
 * [Algorithms][Algs]
 	* [GeoNMF][GeoNMF]
 	* [SPOC][ver1.0]
+	* [MMSB model][]
 
 
 
-[Data]:	 	https://github.com/premolab/SPOC/tree/makeup/data
-[Exps]: 	https://github.com/premolab/SPOC/tree/makeup/experiments
-[Exp1]: 	https://github.com/premolab/SPOC/tree/makeup/experiments/real_data
-[Exp2]: 	https://github.com/premolab/SPOC/tree/makeup/experiments/params
-[Figs]: 	https://github.com/premolab/SPOC/tree/makeup/figures
-[Results]: 	https://github.com/premolab/SPOC/tree/makeup/results
-[Algs]: 	https://github.com/premolab/SPOC/tree/makeup/algorithms
-[GeoNMF]:	https://github.com/premolab/SPOC/tree/makeup/algorithms/GeoNMF.m
-[ver1.0]:	https://github.com/premolab/SPOC/tree/makeup/algorithms/SPOC.py
+[Data]:	 	https://github.com/premolab/SPOC/tree/master/data
+[Exps]: 	https://github.com/premolab/SPOC/tree/master/experiments
+[Exp1]: 	https://github.com/premolab/SPOC/tree/master/experiments/real_data
+[Exp2]: 	https://github.com/premolab/SPOC/tree/master/experiments/params
+[Figs]: 	https://github.com/premolab/SPOC/tree/master/figures
+[Results]: 	https://github.com/premolab/SPOC/tree/master/results
+[Algs]: 	https://github.com/premolab/SPOC/tree/master/spoc
+[GeoNMF]:	https://github.com/premolab/SPOC/blob/master/spoc/GeoNMF.m
+[ver1.0]:	https://github.com/premolab/SPOC/blob/master/spoc/spoc.py
+[MMSB model]: https://github.com/premolab/SPOC/blob/master/spoc/generate_spoc_model.py
 [SPOC]:		https://arxiv.org/abs/1707.01350
 
 ```

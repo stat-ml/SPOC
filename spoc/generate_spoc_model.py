@@ -87,7 +87,7 @@ def find_b_error(B, B_exp):
         if temple_error < error:
             error = temple_error
 
-    return error
+    return error / np.linalg.norm(B, ord='fro')
 
 
 def generate_graph(n, frac, p, q, **kwargs):

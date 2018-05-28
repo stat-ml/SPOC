@@ -38,6 +38,9 @@ class SPOC(object):
 
     use_cvxpy: boolean, optional, default value is False
         Whether to use cvxpy optimization in order to compute Theta matrix.
+        
+    solver: string, default value is "CVXOPT",
+        solver for cvxpy ellipsoid optimization
 
     use_ellipsoid: boolean, optional, default value is False
         If True then ellipsoid transformation is used to transform coordinates
@@ -56,13 +59,14 @@ class SPOC(object):
     """
 
     def __init__(self, use_bootstrap=False, use_ellipsoid=False,
-                 use_convex_hull=False, use_cvxpy=False,
+                 use_convex_hull=False, use_cvxpy=False, solver="CVXOPT",
                  bootstrap_type='random_weights', n_repetitions=30,
                  std_num=3.0, return_bootstrap_matrix=False,
                  return_pure_nodes_indices=False):
 
         self.std_num = std_num
         self.use_cvxpy = use_cvxpy
+        self.solver = solver
         self.n_repetitions = n_repetitions
         self.use_ellipsoid = use_ellipsoid
         self.use_bootstrap = use_bootstrap
@@ -211,7 +215,7 @@ class SPOC(object):
 
         obj = Minimize(-log_det(Q))
         prob = Problem(obj, constraints)
-        _ = prob.solve(solver="CVXOPT")
+        _ = prob.solve(solver=self.solver)
         Q = np.array(Q.value)
         return Q
 
@@ -248,7 +252,7 @@ class SPOC(object):
 
         L, S = sp.linalg.eig(Q)
         L, S = np.diag(np.real(L)), np.real(S)
-        transform_matrix = (S.T).dot(np.sqrt(L))
+        transform_matrix = np.linalg.inv(S)
         new_U = np.dot(transform_matrix, U.T).T
 
         if return_transform_matrix:

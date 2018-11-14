@@ -10,7 +10,7 @@ overlapping clustering ([SPOC][SPOC]).
 
 * [Data][Data]
 * [Experiments][Exps]
-	* [Real data experemets][Exp1]
+	* [Real data experiments][Exp1]
 	* [Variable params][Exp2]
 * [Figures][Figs]
 * [Results][Results]

@@ -2,13 +2,13 @@
 
 import numpy as np
 import scipy as sp
-from scipy.sparse.linalg import eigs
+from scipy.sparse.linalg import eigs, svds
 from scipy.spatial import ConvexHull
 
-from cvxpy import abs, log_det, sum_entries, norm, Variable
+from cvxpy import abs, log_det, sum, norm, Variable
 from cvxpy.problems.objective import Minimize
 from cvxpy.problems.problem import Problem
-from cvxpy.expressions.variables.semidef_var import Semidef
+#from cvxpy.expressions.variables.semidef_var import Semidef
 
 
 class SPOC(object):
@@ -59,7 +59,7 @@ class SPOC(object):
     """
 
     def __init__(self, use_bootstrap=False, use_ellipsoid=False,
-                 use_convex_hull=False, use_cvxpy=False, solver="CVXOPT",
+                 use_convex_hull=False, use_cvxpy=False, solver="SCS",#"CVXOPT",
                  bootstrap_type='random_weights', n_repetitions=30,
                  std_num=3.0, return_bootstrap_matrix=False,
                  return_pure_nodes_indices=False):
@@ -93,7 +93,7 @@ class SPOC(object):
         for param in parameters:
             setattr(self, param, kwargs.get(param, getattr(self, param)))
 
-    def fit(self, A, n_clusters, **kwargs):
+    def fit(self, A, n_clusters, sym=True, **kwargs):
         """
         Parameters
         ---------
@@ -120,7 +120,10 @@ class SPOC(object):
         self._update_params(**kwargs)
 
         self.A = 1.0 * self.A
-        U, Lambda = self._get_U_L(self.A, self.n_clusters)
+        if sym:
+            U, Lambda = self._get_U_L(self.A, self.n_clusters)
+        else:
+            U, Lambda, V = self._get_U_L_V(self.A, self.n_clusters)
 
         if self.use_bootstrap:
             C = self._calculate_C_from_UL(U, Lambda)
@@ -175,6 +178,36 @@ class SPOC(object):
             if U[0, index] < 0:
                 U[:, index] = -1 * U[:, index]
         return U, Lambda
+    
+    @staticmethod
+    def _get_U_L_V(matrix, n_clusters):
+        """
+        Singular value decomposition of matrix
+
+        Parameters
+        ---------
+        matrix: array-like with shape (n_nodes_1, n_nodes_2)
+            Matrix which is decomposed
+            Two types of nodes -- extension of _get_U_L for non symmetric matrix
+
+        n_clusters: int
+            Number of n_clusters
+
+        fix the signs of singular vectors for reproducibility
+
+
+        Returns
+        -------
+        U: nd.array with shape (n_nodes_1, n_clusters)
+
+        L: nd.array with shape (n_clusters,)
+        
+        V: nd.array with shape (n_nodes_2, n_clusters)
+        """
+        
+        U, Lambda, V = svds(matrix, k=n_clusters, which='LM')
+        return U, Lambda, V.T
+        
 
     def _get_Q(self, U):
         """
@@ -199,17 +232,19 @@ class SPOC(object):
 
         n_nodes = U.shape[0]
         k = U.shape[1]
-        Q = Semidef(n=k)
+        Q = Variable((k,k), symmetric=True)
+        constraints = [Q >> 0]
+        #Q = Variable((k,k), PSD=True)
 
         if self.use_convex_hull:
             hull = ConvexHull(U)
             constraints = [
-                abs(U[i, :].reshape((1, k)) * Q * U[i, :].reshape((k, 1))) \
+                abs(U[i, :].reshape((1, k)) @ Q @ U[i, :].reshape((k, 1))) \
                 <= 1 for i in hull.vertices
             ]
         else:
             constraints = [
-                abs(U[i, :].reshape((1, k)) * Q * U[i, :].reshape((k, 1))) \
+                abs(U[i, :].reshape((1, k)) @ Q @ U[i, :].reshape((k, 1))) \
                 <= 1 for i in range(n_nodes)
             ]
 

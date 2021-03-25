@@ -363,8 +363,8 @@ class SPOC(object):
             T, pvalues = tester.test(np.array(list(J)))
             for j in range(len(J)):
                 # in the paper it demands that threshold leads to infinity
-                # but in real life exact function is not clear
-                # thus to use a quantile seems a best way
+                # but in real life exact such growth function is not clear
+                # thus to use a quantile seems to be a best way
                 F[j] = np.mean(U[pvalues[j, :] < 0.05, :], axis=0)
         else:
             F = U[list(J), :]

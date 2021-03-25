@@ -10,6 +10,8 @@ from cvxpy.problems.objective import Minimize
 from cvxpy.problems.problem import Problem
 #from cvxpy.expressions.variables.semidef_var import Semidef
 
+from spoc.equality_test import EqualityTester
+
 
 class SPOC(object):
     """
@@ -50,6 +52,9 @@ class SPOC(object):
         If True then scipy.spatial.ConvexHull optimization is used to reduce a
         number of points in U[i,:].
 
+    use_averaging: boolean, optional, default value is False
+        If True then averaging procedure is run as described in SPOC++ algorithm
+
     bootstrap_type: string, optional, default value is 'random_weights'
         If 'random_indices' then algorithm uses random indices
         If 'random_weights' then algorithm uses random weights (default).
@@ -60,6 +65,7 @@ class SPOC(object):
 
     def __init__(self, use_bootstrap=False, use_ellipsoid=False,
                  use_convex_hull=False, use_cvxpy=False, solver="SCS",#"CVXOPT",
+                 use_averaging=False,
                  bootstrap_type='random_weights', n_repetitions=30,
                  std_num=3.0, return_bootstrap_matrix=False,
                  return_pure_nodes_indices=False):
@@ -72,6 +78,7 @@ class SPOC(object):
         self.use_bootstrap = use_bootstrap
         self.bootstrap_type = bootstrap_type
         self.use_convex_hull = use_convex_hull
+        self.use_averaging = use_averaging
         self.return_bootstrap_matrix = return_bootstrap_matrix
         self.return_pure_nodes_indices = return_pure_nodes_indices
 
@@ -343,7 +350,24 @@ class SPOC(object):
             new_U = new_U.T
             J.add(j_)
             i += 1
-        F = U[list(J), :]
+
+        if self.use_averaging:
+            F = np.zeros((self.n_clusters, self.n_clusters))
+            tester = EqualityTester()
+            tester.fit(
+                self.A,
+                self.n_clusters,
+                U=U,
+                Lambda=Lambda
+            )
+            T, pvalues = tester.test(np.array(list(J)))
+            for j in range(len(J)):
+                # in the paper it demands that threshold leads to infinity
+                # but in real life exact function is not clear
+                # thus to use a quantile seems a best way
+                F[j] = np.mean(U[pvalues[j, :] < 0.05, :], axis=0)
+        else:
+            F = U[list(J), :]
         B = F.dot(np.diag(Lambda)).dot(F.T)
         B[B < 1e-8] = 0
         B[B > 1] = 1

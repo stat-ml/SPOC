@@ -44,3 +44,9 @@ def test_bootstrap(A):
     theta, b = spoc_obj.fit(A, 5)
     assert theta.shape == (300, 5)
     assert b.shape == (5, 5)
+
+def test_averaging(A):
+    spoc_obj = spoc.SPOC(use_averaging=True)
+    theta, b = spoc_obj.fit(A, 5)
+    assert theta.shape == (300, 5)
+    assert b.shape == (5, 5)

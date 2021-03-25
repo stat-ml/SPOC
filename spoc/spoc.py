@@ -382,7 +382,7 @@ class SPOC(object):
         n_clusters = U.shape[1]
 
         if self.use_cvxpy:
-            Theta = Variable(rows=n_nodes, cols=n_clusters)
+            Theta = Variable(shape=(n_nodes, n_clusters))
             constraints = [
                 sum_entries(Theta[i, :]) == 1 for i in range(n_nodes)
             ]

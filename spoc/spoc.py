@@ -384,13 +384,13 @@ class SPOC(object):
         if self.use_cvxpy:
             Theta = Variable(shape=(n_nodes, n_clusters))
             constraints = [
-                sum_entries(Theta[i, :]) == 1 for i in range(n_nodes)
+                sum(Theta[i, :]) == 1 for i in range(n_nodes)
             ]
             constraints += [
                 Theta[i, j] >= 0 for i in range(n_nodes)
                 for j in range(n_clusters)
             ]
-            obj = Minimize(norm(U - Theta * F, 'fro'))
+            obj = Minimize(norm(U - Theta @ F, 'fro'))
             prob = Problem(obj, constraints)
             prob.solve()
             return np.array(Theta.value)

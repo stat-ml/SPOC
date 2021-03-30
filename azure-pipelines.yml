@@ -12,6 +12,7 @@ pool:
 steps:
 - task: AzureResourceManagerTemplateDeployment@3
   inputs:
+    ConnectedServiceName: 'azure'
     deploymentScope: 'Resource Group'
     subscriptionId: '01260f03-1715-40be-8394-c933c13729e3'
     action: 'Create Or Update Resource Group'

@@ -50,6 +50,3 @@ def test_averaging(A):
     theta, b = spoc_obj.fit(A, 5)
     assert theta.shape == (300, 5)
     assert b.shape == (5, 5)
-
-def test_tests():
-    assert False

@@ -27,3 +27,12 @@
 
 #LibraryIO data
 data/Libraries/*
+
+#virtual environment
+env
+
+#vscode files
+.vscode
+
+#gitignore
+.gitignore

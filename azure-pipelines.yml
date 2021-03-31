@@ -21,4 +21,4 @@ steps:
     templateLocation: 'URL of the file'
     csmFileLink: 'https://raw.githubusercontent.com/stat-ml/SPOC/compatibility_2021/azure_templates/azuredeploy.json'
     deploymentMode: 'Incremental'
-    deploymentName: 'DeployPipelineTemplate''
+    deploymentName: 'DeployPipelineTemplate'

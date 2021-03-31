@@ -12,14 +12,13 @@ pool:
 steps:
 - task: AzureResourceManagerTemplateDeployment@3
   inputs:
-    ConnectedServiceName: 'azure'
     deploymentScope: 'Resource Group'
+    azureResourceManagerConnection: 'test_pipeline'
     subscriptionId: '01260f03-1715-40be-8394-c933c13729e3'
     action: 'Create Or Update Resource Group'
     resourceGroupName: 'test_pipline_rg'
     location: 'Central US'
     templateLocation: 'URL of the file'
     csmFileLink: 'https://raw.githubusercontent.com/stat-ml/SPOC/compatibility_2021/azure_templates/azuredeploy.json'
-    overrideParameters: '-projectName spoc'
     deploymentMode: 'Incremental'
-    deploymentName: 'DeployPipelineTemplate'
+    deploymentName: 'DeployPipelineTemplate''

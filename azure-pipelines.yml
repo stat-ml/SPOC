@@ -22,3 +22,4 @@ steps:
     csmFileLink: 'https://raw.githubusercontent.com/stat-ml/SPOC/compatibility_2021/azure_templates/azuredeploy.json'
     deploymentMode: 'Incremental'
     deploymentName: 'DeployPipelineTemplate'
+    overrideParameters: '-projectName spoc'

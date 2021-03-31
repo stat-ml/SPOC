@@ -5,6 +5,7 @@
 
 trigger:
 - master
+- compatibility_2021
 
 pool:
   vmImage: ubuntu-latest

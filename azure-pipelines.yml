@@ -11,16 +11,10 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- task: AzureResourceManagerTemplateDeployment@3
+- task: UsePythonVersion@0
   inputs:
-    deploymentScope: 'Resource Group'
-    azureResourceManagerConnection: 'test_pipeline'
-    subscriptionId: '01260f03-1715-40be-8394-c933c13729e3'
-    action: 'Create Or Update Resource Group'
-    resourceGroupName: 'test_pipline_rg'
-    location: 'Central US'
-    templateLocation: 'URL of the file'
-    csmFileLink: 'https://raw.githubusercontent.com/stat-ml/SPOC/compatibility_2021/azure_templates/azuredeploy.json'
-    deploymentMode: 'Incremental'
-    deploymentName: 'DeployPipelineTemplate'
-    overrideParameters: '-projectName spoc'
+    versionSpec: '3.9'
+- script: pip install -r requirements.txt
+  displayName: 'Install requirements'
+- script: python -m pytest
+  displayName: 'Run tests'

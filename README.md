@@ -48,7 +48,7 @@ Build status
 # Installation 
 
 ```commandline
-git clone https://github.com/premolab/SPOC
+git clone https://github.com/stat-ml/SPOC
 cd SPOC
 python setup.py install
 ```

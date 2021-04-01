@@ -4,8 +4,13 @@
 # https://aka.ms/yaml
 
 trigger:
-- master
-- compatibility_2021
+  branches:
+    include:
+      - master
+      - compatibility_2021
+  paths:
+    exclude:
+    - README.md
 
 pool:
   vmImage: ubuntu-latest

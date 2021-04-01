@@ -37,7 +37,13 @@ overlapping clustering ([SPOC][SPOC]).
 ```
 Build status
 ```
+**master**
+
 [![Build Status](https://dev.azure.com/stat-ml/spoc/_apis/build/status/stat-ml.SPOC?branchName=master)](https://dev.azure.com/stat-ml/spoc/_build/latest?definitionId=3&branchName=master)
+
+**cmpatibility2021**
+
+[![Build Status](https://dev.azure.com/stat-ml/spoc/_apis/build/status/stat-ml.SPOC?branchName=compatibility_2021)](https://dev.azure.com/stat-ml/spoc/_build/latest?definitionId=3&branchName=compatibility_2021)
 
 # Installation 
 

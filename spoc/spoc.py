@@ -389,7 +389,7 @@ class SPOC(object):
                 # in the paper it demands that threshold leads to infinity
                 # but in real life exact such growth function is not clear
                 # thus to use a quantile seems to be a best way
-                indices = pvalues < 0.05
+                indices = pvalues > 0.05
 
             for j in range(len(J)):
                 F[j] = np.mean(U[indices[j], :], axis=0)

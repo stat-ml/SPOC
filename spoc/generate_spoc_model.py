@@ -17,10 +17,11 @@ def find_theta_error(Theta, Theta_exp):
 
         || Theta - Theta_exp ||
 
+    the output is tuple = (the relative error, optimal Theta_exp)
 
     returns
     _______________________________________________
-    absolute error: float
+    relative error: float
     """
 
     assert Theta.shape == Theta_exp.shape, "Theta.shape != Theta_exp.shape"
@@ -31,7 +32,7 @@ def find_theta_error(Theta, Theta_exp):
         if temple_error < error:
             error = temple_error
 
-    return error
+    return error / np.linalg.norm(Theta, ord='fro')
 
 
 def find_permutation_spearmanr(Theta, Theta_exp):
@@ -40,9 +41,11 @@ def find_permutation_spearmanr(Theta, Theta_exp):
     a Spearman rank-order correlation coefficient:
     https://docs.scipy.org/doc/scipy-0.15.1/reference/generated/scipy.stats.spearmanr.html
 
+    the output is tuple = (the relative error, optimal Theta_exp)
+
     returns
     _______________________________________________
-    absolute error: float
+    relative error: float
     """
 
     assert Theta.shape == Theta_exp.shape, "Theta.shape != Theta_exp.shape"

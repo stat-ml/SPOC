@@ -55,6 +55,13 @@ class SPOC(object):
     use_averaging: boolean, optional, default value is False
         If True then averaging procedure is run as described in SPOC++ algorithm
 
+    averaging_threshold: float, optional
+        Eigenvectors are averaged over nodes such that statistics less than 
+        averaging threthold
+    
+    averaging_factor: float, from 0 to 1, optional
+        Eigenvectors are averaged over averaging_factor times n nearset nodes
+
     bootstrap_type: string, optional, default value is 'random_weights'
         If 'random_indices' then algorithm uses random indices
         If 'random_weights' then algorithm uses random weights (default).
@@ -68,7 +75,9 @@ class SPOC(object):
                  use_averaging=False,
                  bootstrap_type='random_weights', n_repetitions=30,
                  std_num=3.0, return_bootstrap_matrix=False,
-                 return_pure_nodes_indices=False):
+                 return_pure_nodes_indices=False,
+                 averaging_threshold=None,
+                 averaging_factor=None):
 
         self.std_num = std_num
         self.use_cvxpy = use_cvxpy
@@ -79,6 +88,15 @@ class SPOC(object):
         self.bootstrap_type = bootstrap_type
         self.use_convex_hull = use_convex_hull
         self.use_averaging = use_averaging
+        if (type(averaging_factor) != type(None) 
+                and type(averaging_threshold) != type(None)):
+                raise Exception(
+                    'Averaging method conflict', 
+                    'Either averaging_factor is not None or averaging_threshold is not None ' +
+                    'but not both'
+                )
+        self.averaging_threshold = averaging_threshold
+        self.averaging_factor = averaging_factor
         self.return_bootstrap_matrix = return_bootstrap_matrix
         self.return_pure_nodes_indices = return_pure_nodes_indices
 
@@ -352,6 +370,7 @@ class SPOC(object):
             i += 1
 
         if self.use_averaging:
+            n_nodes = U.shape[0]
             F = np.zeros((self.n_clusters, self.n_clusters))
             tester = EqualityTester()
             tester.fit(
@@ -361,11 +380,19 @@ class SPOC(object):
                 Lambda=Lambda
             )
             T, pvalues = tester.test(np.array(list(J)))
-            for j in range(len(J)):
+            if (type(self.averaging_factor) != type(None)):
+                num_proccessing_nodes = int(self.averaging_factor * n_nodes)
+                indices = np.argsort(T, axis=1)[:, :num_proccessing_nodes]
+            elif (type(self.averaging_threshold) != type(None)):
+                indices = (T < self.averaging_threshold)
+            else:
                 # in the paper it demands that threshold leads to infinity
                 # but in real life exact such growth function is not clear
                 # thus to use a quantile seems to be a best way
-                F[j] = np.mean(U[pvalues[j, :] < 0.05, :], axis=0)
+                indices = pvalues > 0.05
+
+            for j in range(len(J)):
+                F[j] = np.mean(U[indices[j], :], axis=0)
         else:
             F = U[list(J), :]
         B = F.dot(np.diag(Lambda)).dot(F.T)

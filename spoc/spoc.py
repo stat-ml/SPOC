@@ -95,6 +95,8 @@ class SPOC(object):
                     'Either averaging_factor is not None or averaging_threshold is not None ' +
                     'but not both'
                 )
+        if (use_averaging and not(sym)):
+            raise Exception("Can't use averaging in asymmetric problem")
         self.averaging_threshold = averaging_threshold
         self.averaging_factor = averaging_factor
         self.return_bootstrap_matrix = return_bootstrap_matrix
@@ -112,7 +114,8 @@ class SPOC(object):
         parameters = [
             'A', 'n_clusters', 'n_repetitions', 'std_num', 'use_bootstrap',
             'return_pure_nodes_indices', 'use_ellipsoid', 'bootstrap_type',
-            'return_bootstrap_matrix', 'use_convex_hull', 'use_cvxpy'
+            'return_bootstrap_matrix', 'use_convex_hull', 'use_cvxpy',
+            'use_averaging', 'averaging_threshold', 'averaging_factor'
         ]
 
         for param in parameters:

@@ -95,8 +95,6 @@ class SPOC(object):
                     'Either averaging_factor is not None or averaging_threshold is not None ' +
                     'but not both'
                 )
-        if (use_averaging and not(sym)):
-            raise Exception("Can't use averaging in asymmetric problem")
         self.averaging_threshold = averaging_threshold
         self.averaging_factor = averaging_factor
         self.return_bootstrap_matrix = return_bootstrap_matrix
@@ -142,6 +140,9 @@ class SPOC(object):
                              (n_repetitions, n_nodes, n_clusters)
             the result of bootstrap
         """
+
+        if (self.use_averaging and not(sym)):
+            raise Exception("Can't use averaging in asymmetric problem")
 
         self.A = A
         self.n_clusters = n_clusters

@@ -7,9 +7,12 @@ import matplotlib.pyplot as plt
 
 
 def plot_spectrum(A, n_clusters,
-                  pure_inds=None, draw_selected=False):
+                  pure_inds=None, sym=True, draw_selected=False):
 
-    u, lambd = spoc.SPOC._get_U_L(A, n_clusters)
+    if sym:
+        u, lambd = spoc.SPOC._get_U_L(A, n_clusters)
+    else:
+        u, lambd, v = spoc.SPOC._get_U_L_V(A, n_clusters)
 
     fig, axes = plt.subplots(figsize=(12, 8))
     axes.scatter(u[:, 0], u[:, 1], c='b',

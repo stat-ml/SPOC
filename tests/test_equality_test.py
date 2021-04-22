@@ -5,9 +5,9 @@ import numpy as np
 
 @pytest.fixture()
 def A():
-    n_nodes = 300
+    n_nodes = 1000
     n_clusters = 5
-    pure_nodes = 10
+    pure_nodes = 100
     A, _, _ = generate_spoc_model.generate_a(n_nodes, n_clusters, pure_nodes)
     return A 
 

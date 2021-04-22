@@ -31,7 +31,7 @@ def topic_document(n,k=0,alpha=0):
     n --- the number of documents
     k --- the number of topics if k != 0
     alpha --- the parameter of Dirichlet distribution, if 0 then rows are generated 
-    from uniform distribution on simplex
+    from the uniform distribution on the simplex
 
     -----------
     Returns:

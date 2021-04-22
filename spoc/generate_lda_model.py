@@ -12,7 +12,7 @@ def dirichlet_matrix(size, alpha):
     alpha --- the parameter of Dirichlet distribution
 
     ------------
-    Return:
+    Returns:
     A matrix of shape (size, len(alpha))
     """
     matD = sps.dirichlet(alpha).rvs(size=(size, ))
@@ -34,7 +34,7 @@ def topic_document(n,k=0,alpha=0):
     from uniform distribution on simplex
 
     -----------
-    Return
+    Returns:
     A matrix of shape (n, len(alpha))
     """
     if (k == 0 and alpha==0):
@@ -46,7 +46,6 @@ def topic_document(n,k=0,alpha=0):
         matIdk = np.eye(k)
         matW = dirichlet_matrix(n-k,alpha)
         matW = np.concatenate((matIdk,matW))
-        #matW = np.random.permutation(matW)
         return(matW)
     else:
         matIdk = np.eye(k)
@@ -56,7 +55,6 @@ def topic_document(n,k=0,alpha=0):
             matW = dirichlet_matrix(n-k, alpha)
         matW = np.concatenate((matIdk,matW))
         matW = matW/matW.sum(axis=1)[:,None]
-        #matW = np.random.permutation(matW)
         return(matW)
 
 
@@ -70,7 +68,7 @@ def word_topic(p, k):
     k --- the number of topics
 
     -------
-    Return:
+    Returns:
     A --- matrix of shape(k, p)
     """
     matA = np.random.rand(k,p)
@@ -93,6 +91,7 @@ def word_document(n,p,k,alpha=0, fact=False):
     fact --- if True, word-topic and topic-document matrices are returned
 
     --------
+    Returns:
     A matrix of shape (p, n)
     """
     matW = topic_document(n,k,alpha)
@@ -108,7 +107,7 @@ def word_document(n,p,k,alpha=0, fact=False):
 
 def gen_freq_matrix(n,p,N,k=0,alpha=0,fact=False,loop=True):
     """
-    Generates frequency matrix for word-doctument
+    Generates a words' frequencies for each document
 
     Parameters:
     n --- number of documents
@@ -118,7 +117,7 @@ def gen_freq_matrix(n,p,N,k=0,alpha=0,fact=False,loop=True):
     fact --- if True, word-topic and topic-document matrices returned
 
     ----------
-    Return:
+    Returns:
     matrix of shape (p, n)
     """
     if fact:
@@ -141,7 +140,7 @@ def gen_freq_matrix_given_P(N, P):
     P --- the matrix which each row is multinomial distribution
 
     -------------
-    Return:
+    Returns:
     A matrix with the same shape as P
     """
     n = P.shape[0]

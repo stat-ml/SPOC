@@ -24,7 +24,7 @@ def plot_spectrum(A, n_clusters,
                      label='pure nodes')
 
     if draw_selected:
-        theta, b, selected = spoc.SPOC().fit(A, n_clusters,
+        theta, b, selected = spoc.SPOC().fit(A, n_clusters, sym=sym,
                                              return_pure_nodes_indices=True)
 
         axes.scatter(u[selected, 0],

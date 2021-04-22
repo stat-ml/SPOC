@@ -21,5 +21,4 @@ def test_document_topic_error():
 
     error = generate_lda_model.find_topic_document_error(right_theta,
                                                  exp_theta)
-    error = error / np.linalg.norm(exp_theta, ord='fro')
-    assert abs(error - 1.0) < sys.float_info.epsilon
+    assert abs(error - np.sqrt(2)) < sys.float_info.epsilon

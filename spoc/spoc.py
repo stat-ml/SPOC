@@ -56,7 +56,7 @@ class SPOC(object):
         If True then averaging procedure is run as described in SPOC++ algorithm
 
     averaging_threshold: float, optional
-        Eigenvectors are averaged over nodes such that statistics less than 
+        Eigenvectors are averaged over such nodes that statistics less than the
         averaging threthold
     
     averaging_factor: float, from 0 to 1, optional
@@ -68,16 +68,30 @@ class SPOC(object):
 
     return_bootstrap_matrix: boolean, optional, default value is False
         If True then also returns bootstrap result.
+
+    model_type: string, default value is graph_mmsb. 
+        If model_type=='graph_mmsb' then SPOC is used to estimate the membership
+        matrix Theta and the community matrix B in mixed-membership stochastic 
+        block model. Thus, an adjecency matrix A is required to be square. Otherwise,
+        if model_type=='topic_plsi' then SPOC is used for topic modeling, and 
+        given a frequency word-document matrix A, it returns a document-topic matrix.
     """
 
-    def __init__(self, use_bootstrap=False, use_ellipsoid=False,
-                 use_convex_hull=False, use_cvxpy=False, solver="SCS",#"CVXOPT",
-                 use_averaging=False,
-                 bootstrap_type='random_weights', n_repetitions=30,
-                 std_num=3.0, return_bootstrap_matrix=False,
-                 return_pure_nodes_indices=False,
-                 averaging_threshold=None,
-                 averaging_factor=None):
+    def __init__(self, use_bootstrap=False,
+                model_type='graph_mmsb',
+                use_ellipsoid=False,
+                use_convex_hull=False, use_cvxpy=False, solver="SCS",#"CVXOPT",
+                use_averaging=False,
+                bootstrap_type='random_weights', n_repetitions=30,
+                std_num=3.0, return_bootstrap_matrix=False,
+                return_pure_nodes_indices=False,
+                averaging_threshold=None,
+                averaging_factor=None):
+
+        if not(model_type in ['graph_mmsb', 'topic_plsi']):
+            Exception("The parameter model_type should " +
+                "be either 'graph_mmsbm' or 'topic_plsi'"
+            )
 
         self.std_num = std_num
         self.use_cvxpy = use_cvxpy
@@ -99,6 +113,7 @@ class SPOC(object):
         self.averaging_factor = averaging_factor
         self.return_bootstrap_matrix = return_bootstrap_matrix
         self.return_pure_nodes_indices = return_pure_nodes_indices
+        self.model_type = model_type
 
     def _update_params(self, **kwargs):
         """
@@ -119,7 +134,7 @@ class SPOC(object):
         for param in parameters:
             setattr(self, param, kwargs.get(param, getattr(self, param)))
 
-    def fit(self, A, n_clusters, sym=True, **kwargs):
+    def fit(self, A, n_clusters, **kwargs):
         """
         Parameters
         ---------
@@ -141,10 +156,23 @@ class SPOC(object):
             the result of bootstrap
         """
 
+        sym = (self.model_type == 'graph_mmsb')
+
         if (self.use_averaging and not(sym)):
-            raise Exception("Can't use averaging in asymmetric problem")
+            raise Exception("Can't use averaging in an asymmetric problem")
 
         self.A = A
+
+        if (sym and A.shape[0] != A.shape[1]):
+            raise Warning(
+                'To estimate parameters in mixed-membership stochastic ' +
+                'block model A should be square.' +
+                "Model type was switched to 'topic_plsi'"
+            )
+            sym = False
+            self.model_type = 'topic_plsi'
+
+
         self.n_clusters = n_clusters
         self._update_params(**kwargs)
 
@@ -160,22 +188,33 @@ class SPOC(object):
             F, B, J = self._get_F_B_bootstrap(U, Lambda, repeats)
             Theta = self._get_Theta(U=U_mean, F=F)
             if self.return_bootstrap_matrix and self.return_pure_nodes_indices:
-                return Theta, B, J, repeats
+                return self.return_function(Theta, B, J, repeats=repeats)
             elif self.return_bootstrap_matrix \
                     and self.return_pure_nodes_indices is False:
-                return Theta, B, repeats
+                return self.return_function(Theta, B, repeats=repeats)
             elif self.return_bootstrap_matrix is False and \
                     self.return_pure_nodes_indices:
-                return Theta, B, J
+                return self.return_function(Theta, B, J=J)
             else:
-                return Theta, B
+                return self.return_function(Theta, B)
         else:
             F, B, J = self._get_F_B(U, Lambda)
             Theta = self._get_Theta(U, F)
             if self.return_pure_nodes_indices:
-                return Theta, B, J
+                return self.return_function(Theta, B, J=J)
             else:
-                return Theta, B
+                return self.return_function(Theta, B)
+
+    def return_function(self, Theta, B, J=None, repeats=None):
+        return_list = [Theta]
+        if (self.model_type == 'graph_mmsb'):
+            return_list += [B]
+        if (type(J) != type(None) and type(repeats) == type(None)):
+            return_list += [J]
+        if (type(repeats) != type(None)):
+            return_list += [repeats]
+        return tuple(return_list)
+            
 
     @staticmethod
     def _get_U_L(matrix, n_clusters):
@@ -423,11 +462,6 @@ class SPOC(object):
         Theta: nd.array with shape (n_nodes, n_clusters)
 
         where n_nodes == U.shape[0], n_clusters == U.shape[1]
-
-
-        Requires
-        --------
-        cvxpy (http://www.cvxpy.org/en/latest/)
         """
 
         assert U.shape[1] == F.shape[0] == F.shape[1], \
@@ -436,26 +470,7 @@ class SPOC(object):
         n_nodes = U.shape[0]
         n_clusters = U.shape[1]
 
-        if self.use_cvxpy:
-            Theta = Variable(shape=(n_nodes, n_clusters))
-            constraints = [
-                sum(Theta[i, :]) == 1 for i in range(n_nodes)
-            ]
-            constraints += [
-                Theta[i, j] >= 0 for i in range(n_nodes)
-                for j in range(n_clusters)
-            ]
-            obj = Minimize(norm(U - Theta @ F, 'fro'))
-            prob = Problem(obj, constraints)
-            prob.solve()
-            return np.array(Theta.value)
-        else:
-            projector = F.T.dot(np.linalg.inv(F.dot(F.T)))
-            theta = U.dot(projector)
-            theta_simplex_proj = np.array([
-                self._euclidean_proj_simplex(x) for x in theta
-            ])
-            return theta_simplex_proj
+        return U @ np.linalg.inv(F)
 
     @staticmethod
     def _euclidean_proj_simplex(v, s=1):

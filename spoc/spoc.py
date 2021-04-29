@@ -3,7 +3,7 @@
 import numpy as np
 import scipy as sp
 from scipy.sparse.linalg import eigs, svds
-from scipy.spatial import ConvexHull\
+from scipy.spatial import ConvexHull
 import warnings
 
 from cvxpy import abs, log_det, sum, norm, Variable

@@ -3,7 +3,8 @@
 import numpy as np
 import scipy as sp
 from scipy.sparse.linalg import eigs, svds
-from scipy.spatial import ConvexHull
+from scipy.spatial import ConvexHull\
+import warnings
 
 from cvxpy import abs, log_det, sum, norm, Variable
 from cvxpy.problems.objective import Minimize
@@ -164,10 +165,11 @@ class SPOC(object):
         self.A = A
 
         if (sym and A.shape[0] != A.shape[1]):
-            raise Warning(
+            warnings.warn(
                 'To estimate parameters in mixed-membership stochastic ' +
                 'block model A should be square.' +
-                "Model type was switched to 'topic_plsi'"
+                "Model type was switched to 'topic_plsi'",
+                RuntimeWarning
             )
             sym = False
             self.model_type = 'topic_plsi'

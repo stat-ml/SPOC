@@ -1,5 +1,5 @@
 import pytest
-from spoc import spoc, generate_spoc_model
+from spoc import spoc, generate_spoc_model, generate_lda_model
 
 
 @pytest.fixture()
@@ -9,6 +9,17 @@ def A():
     pure_nodes = 10
     A, _, _ = generate_spoc_model.generate_a(n_nodes, n_clusters, pure_nodes)
     return A
+
+
+@pytest.fixture()
+def A_asym():
+    return generate_lda_model.gen_freq_matrix(
+        N=10000,
+        n=1000,
+        p=50,
+        k=0,
+        alpha=(0.15,0.15,0.85)
+    )
 
 
 def test_simple(A):
@@ -50,3 +61,10 @@ def test_averaging(A):
     theta, b = spoc_obj.fit(A, 5)
     assert theta.shape == (300, 5)
     assert b.shape == (5, 5)
+
+
+def test_asym(A_asym):
+    spoc_obj = spoc.SPOC(model_type='topic_plsi')
+    theta, freq_matrix = spoc_obj.fit(A_asym, 3)
+    assert theta.shape == (1000, 3)
+    assert freq_matrix.shape == (3, 50)

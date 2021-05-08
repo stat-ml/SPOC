@@ -9,10 +9,12 @@ def dirichlet_matrix(size, alpha):
     Generates a matrix with independent rows from Dirichlet distribution
 
     Parameters:
+
     alpha --- the parameter of Dirichlet distribution
 
     ------------
     Returns:
+    
     A matrix of shape (size, len(alpha))
     """
     matD = sps.dirichlet(alpha).rvs(size=(size, ))
@@ -28,13 +30,17 @@ def topic_document(n,k=0,alpha=0):
     topic|document ~ Dirichlet(alpha)
 
     Parameters:
+
     n --- the number of documents
+
     k --- the number of topics if k != 0
+
     alpha --- the parameter of Dirichlet distribution, if 0 then rows are generated 
     from the uniform distribution on the simplex
 
     -----------
     Returns:
+
     A matrix of shape (n, len(alpha))
     """
     if (k == 0 and alpha==0):
@@ -64,11 +70,14 @@ def word_topic(p, k):
     Generates a word-topic matrix with entries p(w|t) from the uniform distribution
 
     Parameters:
+
     p --- the number of words
+
     k --- the number of topics
 
     -------
     Returns:
+
     A --- matrix of shape(k, p)
     """
     matA = np.random.rand(k,p)
@@ -83,11 +92,16 @@ def word_document(n,p,k,alpha=0, fact=False):
     the word-topic matrix is generated from the uniform distribution
 
     Parameters:
+
     n --- the number of documents
+
     p --- the number of words
+
     k --- the number of topics
+    
     alpha --- the parameter of Dirichlet distribution for a topic conditioned on a document,
     if 0 then a word conditioned on a document generates from the uniform distribution
+
     fact --- if True, word-topic and topic-document matrices are returned
 
     --------
@@ -110,14 +124,20 @@ def gen_freq_matrix(n,p,N,k=0,alpha=0,fact=False,loop=True):
     Generates a words' frequencies for each document
 
     Parameters:
+
     n --- number of documents
+
     p --- number of words
+
     N --- number of words in each document
+
     alpha --- parameter of Dirichlet distribution
+
     fact --- if True, word-topic and topic-document matrices returned
 
     ----------
     Returns:
+
     matrix of shape (p, n)
     """
     if fact:
@@ -137,10 +157,12 @@ def gen_freq_matrix_given_P(N, P):
     Given the matrix P, samples a frequency matrix and returns it
     
     N --- the number of words we sample in each document
+
     P --- the matrix which each row is multinomial distribution
 
     -------------
     Returns:
+
     A matrix with the same shape as P
     """
     n = P.shape[0]
@@ -163,6 +185,7 @@ def find_topic_document_error(Theta, Theta_exp):
     
     Parameters:
     Theta --- the estimator of the matrix of Theta_exp
+
     Theta_exp --- the estimated matrix
 
     -------------

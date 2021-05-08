@@ -148,7 +148,11 @@ class SPOC(object):
         -------
         Theta: nd.array with shape (n_nodes, n_clusters)
 
-        B: nd.array with shape (n_clusters, n_clusters)
+        B: nd.array with shape (n_clusters, n_clusters) --- a community 
+        matrix in the MMSB model
+
+        A : nd.array with shape (n_topics, n_words) --- the estimator 
+        of a topic-word matrix the in plsi model
 
         J: list with selected nodes (check **kwargs)
 
@@ -189,30 +193,75 @@ class SPOC(object):
             U_mean, repeats = self._calculate_mean_cov_U(self.A, C)
             F, B, J = self._get_F_B_bootstrap(U, Lambda, repeats)
             Theta = self._get_Theta(U=U_mean, F=F)
+            if not(sym):
+                frequency_matrix = F @ (Lambda.reshape(-1, 1) * V.T)
+            else:
+                frequency_matrix = None
             if self.return_bootstrap_matrix and self.return_pure_nodes_indices:
-                return self.return_function(Theta, B, J, repeats=repeats)
+                return self.return_function(
+                    Theta, 
+                    B, 
+                    J, 
+                    repeats=repeats,
+                    frequency_matrix=frequency_matrix
+                )
             elif self.return_bootstrap_matrix \
                     and self.return_pure_nodes_indices is False:
-                return self.return_function(Theta, B, repeats=repeats)
+                return self.return_function(
+                    Theta, 
+                    B, 
+                    repeats=repeats,
+                    frequency_matrix=frequency_matrix
+                )
             elif self.return_bootstrap_matrix is False and \
                     self.return_pure_nodes_indices:
-                return self.return_function(Theta, B, J=J)
+                return self.return_function(
+                    Theta, 
+                    B, 
+                    J=J,
+                    frequency_matrix=frequency_matrix
+                )
             else:
-                return self.return_function(Theta, B)
+                return self.return_function(
+                    Theta, 
+                    B,
+                    frequency_matrix=frequency_matrix
+                )
         else:
             F, B, J = self._get_F_B(U, Lambda)
             Theta = self._get_Theta(U, F)
-            if self.return_pure_nodes_indices:
-                return self.return_function(Theta, B, J=J)
+            if not(sym):
+                frequency_matrix = F @ (Lambda.reshape(-1, 1) * V.T)
             else:
-                return self.return_function(Theta, B)
+                frequency_matrix = None
+            print(frequency_matrix)
+            if self.return_pure_nodes_indices:
+                return self.return_function(
+                    Theta, 
+                    B, 
+                    J=J,
+                    frequency_matrix=frequency_matrix
+                )
+            else:
+                return self.return_function(
+                    Theta, 
+                    B,
+                    frequency_matrix=frequency_matrix
+                )
 
-    def return_function(self, Theta, B, J=None, repeats=None):
+    def return_function(self, 
+                        Theta, B,
+                        frequency_matrix=None, 
+                        J=None, 
+                        repeats=None
+                    ):
         return_list = [Theta]
         if (self.model_type == 'graph_mmsb'):
             return_list += [B]
         if (type(J) != type(None) and type(repeats) == type(None)):
             return_list += [J]
+        if type(frequency_matrix) != type(None):
+            return_list += [frequency_matrix]
         if (type(repeats) != type(None)):
             return_list += [repeats]
         return tuple(return_list)
@@ -381,9 +430,11 @@ class SPOC(object):
         -------
         F: nd.array with shape (n_clusters, n_clusters)
 
-        B: nd.array with shape == F.shape
+        B: nd.array with shape == F.shape 
 
         J: list of pretenders to be pure nodes (check **kwargs argument)
+
+
         """
 
         k = U.shape[1]
@@ -462,7 +513,6 @@ class SPOC(object):
         Returns
         -------
         Theta: nd.array with shape (n_nodes, n_clusters)
-
         where n_nodes == U.shape[0], n_clusters == U.shape[1]
         """
 
@@ -472,7 +522,25 @@ class SPOC(object):
         n_nodes = U.shape[0]
         n_clusters = U.shape[1]
 
-        return U @ np.linalg.inv(F)
+        if self.use_cvxpy:
+            Theta = Variable(shape=(n_nodes, n_clusters))
+            constraints = [
+                sum(Theta[i, :]) == 1 for i in range(n_nodes)
+            ]
+            constraints += [
+                Theta[i, j] >= 0 for i in range(n_nodes)
+                for j in range(n_clusters)
+            ]
+            obj = Minimize(norm(U - Theta * F, 'fro'))
+            prob = Problem(obj, constraints)
+            prob.solve()
+            return np.array(Theta.value)
+        else:
+            theta = U @ np.linalg.inv(F)
+            theta_simplex_proj = np.array([
+                self._euclidean_proj_simplex(x) for x in theta
+            ])
+            return theta_simplex_proj
 
     @staticmethod
     def _euclidean_proj_simplex(v, s=1):

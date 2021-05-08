@@ -330,12 +330,17 @@ def generate_a(n_nodes, n_clusters, pure_nodes_number, **kwargs):
     using P_to_A
 
     n_nodes: number of nodes
+
     n_clusters: number of communities
+
     pure_nodes_numbers: number of pure nodes in graph
 
     **kwargs:
+    
     Theta: Theta matrix in P = Theta * B * Theta.T
+
     B: B matrix in P = Theta * B * Theta.T
+
     seed: random_state in np.random.seed
     _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
     alphas: array in np.random.dirichlet (used only if Theta is not set up)

@@ -85,8 +85,11 @@ class EqualityTester:
         Parameters:
         -------------
         A: agjacency matrix
+
         n_clusters: number of clusters
+
         U: (optional) eigenvectors of A
+        
         Lambda: (optional) first n_clusters of eigenvalues of A
         """
         self.n_clusters = n_clusters

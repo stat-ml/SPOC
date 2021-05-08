@@ -234,7 +234,6 @@ class SPOC(object):
                 frequency_matrix = F @ (Lambda.reshape(-1, 1) * V.T)
             else:
                 frequency_matrix = None
-            print(frequency_matrix)
             if self.return_pure_nodes_indices:
                 return self.return_function(
                     Theta, 

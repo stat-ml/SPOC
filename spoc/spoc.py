@@ -59,6 +59,10 @@ class SPOC(object):
     averaging_threshold: float, optional
         Eigenvectors are averaged over such nodes that statistics less than the
         averaging threthold
+
+    use_simplex_projection: boolean, default True
+        If True, then rows of estimators of any stochastic matrices 
+        are projected into the standard simplex
     
     averaging_factor: float, from 0 to 1, optional
         Eigenvectors are averaged over averaging_factor times n nearset nodes
@@ -83,6 +87,7 @@ class SPOC(object):
                 use_ellipsoid=False,
                 use_convex_hull=False, use_cvxpy=False, solver="SCS",#"CVXOPT",
                 use_averaging=False,
+                use_simplex_projection=True,
                 bootstrap_type='random_weights', n_repetitions=30,
                 std_num=3.0, return_bootstrap_matrix=False,
                 return_pure_nodes_indices=False,
@@ -103,6 +108,7 @@ class SPOC(object):
         self.bootstrap_type = bootstrap_type
         self.use_convex_hull = use_convex_hull
         self.use_averaging = use_averaging
+        self.use_simplex_projection = use_simplex_projection
         if (type(averaging_factor) != type(None) 
                 and type(averaging_threshold) != type(None)):
                 raise Exception(
@@ -194,7 +200,9 @@ class SPOC(object):
             F, B, J = self._get_F_B_bootstrap(U, Lambda, repeats)
             Theta = self._get_Theta(U=U_mean, F=F)
             if not(sym):
-                frequency_matrix = F @ (Lambda.reshape(-1, 1) * V.T)
+                frequency_matrix = self._get_frequency_matrix(
+                    F, Lambda, V
+                )
             else:
                 frequency_matrix = None
             if self.return_bootstrap_matrix and self.return_pure_nodes_indices:
@@ -231,7 +239,9 @@ class SPOC(object):
             F, B, J = self._get_F_B(U, Lambda)
             Theta = self._get_Theta(U, F)
             if not(sym):
-                frequency_matrix = F @ (Lambda.reshape(-1, 1) * V.T)
+                frequency_matrix = self._get_frequency_matrix(
+                    F, Lambda, V
+                )
             else:
                 frequency_matrix = None
             if self.return_pure_nodes_indices:
@@ -247,6 +257,7 @@ class SPOC(object):
                     B,
                     frequency_matrix=frequency_matrix
                 )
+                
 
     def return_function(self, 
                         Theta, B,
@@ -257,10 +268,10 @@ class SPOC(object):
         return_list = [Theta]
         if (self.model_type == 'graph_mmsb'):
             return_list += [B]
-        if (type(J) != type(None) and type(repeats) == type(None)):
-            return_list += [J]
         if type(frequency_matrix) != type(None):
             return_list += [frequency_matrix]
+        if (type(J) != type(None) and type(repeats) == type(None)):
+            return_list += [J]
         if (type(repeats) != type(None)):
             return_list += [repeats]
         return tuple(return_list)
@@ -521,6 +532,9 @@ class SPOC(object):
         n_nodes = U.shape[0]
         n_clusters = U.shape[1]
 
+        if not(self.use_simplex_projection):
+            return U @ np.linalg.inv(F)
+
         if self.use_cvxpy:
             Theta = Variable(shape=(n_nodes, n_clusters))
             constraints = [
@@ -540,6 +554,42 @@ class SPOC(object):
                 self._euclidean_proj_simplex(x) for x in theta
             ])
             return theta_simplex_proj
+
+
+    def _get_frequency_matrix(self, F, L, V):
+        """
+        Calculates the frequency matrix A = F @ np.diag(L) @ V.T
+        If use_simplex_projection=True then rows of A are projected into 
+        standard simplex
+
+        Parameteres:
+
+        ----------------
+
+        F: (K x K) matrix
+
+        L: (K,)-arrray, singular values of the observed matrix X
+
+        V: (p, K) matrix
+
+        Returns:
+
+        -----------------
+
+        A: the estimator of the topic-word matrix
+
+        """
+        A = F @ (L.reshape(-1, 1) * V.T)
+        if self.use_simplex_projection:
+            A = np.array([
+                self._euclidean_proj_simplex(
+                    A[i]
+                )
+                for i in range(A.shape[0])
+            ])
+        return A
+
+
 
     @staticmethod
     def _euclidean_proj_simplex(v, s=1):

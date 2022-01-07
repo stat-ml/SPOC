@@ -2,5 +2,5 @@ numpy==1.13.1
 scipy==0.19.1
 pandas==0.20.3
 cvxpy==0.4.11
-cvxopt==1.1.9
+cvxopt==1.2.7
 pytest==3.2.5

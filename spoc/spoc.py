@@ -190,7 +190,10 @@ class SPOC(object):
 
         self.A = 1.0 * self.A
         if sym:
-            U, Lambda = self._get_U_L(self.A, self.n_clusters)
+            if self.use_averaging:
+                U, Lambda = self.spocpp_U_L(self.A, n_clusters)
+            else:
+                U, Lambda = self._get_U_L(self.A, self.n_clusters)
         else:
             U, Lambda, V = self._get_U_L_V(self.A, self.n_clusters)
 
@@ -307,6 +310,36 @@ class SPOC(object):
             if U[0, index] < 0:
                 U[:, index] = -1 * U[:, index]
         return U, Lambda
+    
+
+    def spocpp_U_L(self, matrix, n_clusters):
+        U, L = self._get_U_L(matrix, n_clusters)
+        degrees = matrix.sum(axis=1).reshape(-1, 1)
+        
+        quad_form = U.T @ (degrees * U)
+        
+        L_new = L / (1 + np.diag(quad_form) / L ** 2)
+
+        U_new = np.zeros(U.shape)
+
+        for cluster in n_clusters:
+            other_indices = list(np.arange(cluster)) + list(np.arange(cluster + 1, n_clusters))
+            U_new[:, cluster] = U[:, cluster] * (
+                1 - (degrees - 3/2 * quad_form[cluster, cluster]) / L[cluster] ** 2
+            )
+
+            bias = U[:, other_indices] * (
+                L_new[other_indices] * quad_form[cluster, other_indices] /
+                (L_new[other_indices] - L[cluster]) 
+            ).sum(axis=0, keepdims=True)
+
+            U_new[:, cluster] -= bias / L[cluster] ** 2
+        
+        return U_new, L_new
+
+
+
+
     
     @staticmethod
     def _get_U_L_V(matrix, n_clusters):

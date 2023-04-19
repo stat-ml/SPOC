@@ -86,7 +86,7 @@ class SPOC(object):
                 model_type='graph_mmsb',
                 use_ellipsoid=False,
                 use_convex_hull=False, use_cvxpy=False, solver="SCS",#"CVXOPT",
-                use_averaging=False,
+                use_averaging=False, correct_eigenvectors=False,
                 use_simplex_projection=True,
                 bootstrap_type='random_weights', n_repetitions=30,
                 std_num=3.0, return_bootstrap_matrix=False,
@@ -108,6 +108,7 @@ class SPOC(object):
         self.bootstrap_type = bootstrap_type
         self.use_convex_hull = use_convex_hull
         self.use_averaging = use_averaging
+        self.correct_eigenvectors = correct_eigenvectors
         self.use_simplex_projection = use_simplex_projection
         if (type(averaging_factor) != type(None) 
                 and type(averaging_threshold) != type(None)):
@@ -314,15 +315,18 @@ class SPOC(object):
 
     def spocpp_U_L(self, matrix, n_clusters):
         U, L = self._get_U_L(matrix, n_clusters)
-        degrees = matrix.sum(axis=1).reshape(-1, 1)
+        degrees = matrix.sum(axis=1)
         
-        quad_form = U.T @ (degrees * U)
+        quad_form = U.T @ (degrees.reshape(-1, 1) * U)
         
         L_new = L / (1 + np.diag(quad_form) / L ** 2)
 
+        if not(self.correct_eigenvectors):
+            return U, L_new
+
         U_new = np.zeros(U.shape)
 
-        for cluster in n_clusters:
+        for cluster in range(n_clusters):
             other_indices = list(np.arange(cluster)) + list(np.arange(cluster + 1, n_clusters))
             U_new[:, cluster] = U[:, cluster] * (
                 1 - (degrees - 3/2 * quad_form[cluster, cluster]) / L[cluster] ** 2
@@ -333,7 +337,7 @@ class SPOC(object):
                 (L_new[other_indices] - L[cluster]) 
             ).sum(axis=0, keepdims=True)
 
-            U_new[:, cluster] -= bias / L[cluster] ** 2
+            U_new[:, cluster] -= bias.sum(axis=1) / L[cluster] ** 2
         
         return U_new, L_new
 

@@ -315,6 +315,7 @@ class SPOC(object):
 
     def spocpp_U_L(self, matrix, n_clusters):
         U, L = self._get_U_L(matrix, n_clusters)
+        self.U, self.L = U, L
         degrees = matrix.sum(axis=1)
         
         quad_form = U.T @ (degrees.reshape(-1, 1) * U)
@@ -519,8 +520,8 @@ class SPOC(object):
             tester.fit(
                 self.A,
                 self.n_clusters,
-                U=U,
-                Lambda=Lambda
+                U=self.U,
+                Lambda=self.L
             )
             T, pvalues = tester.test(np.array(list(J)))
             if (type(self.averaging_factor) != type(None)):

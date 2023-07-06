@@ -336,7 +336,7 @@ class SPOC(object):
             bias = U[:, other_indices] * (
                 L_new[other_indices] * quad_form[cluster, other_indices] /
                 (L_new[other_indices] - L[cluster]) 
-            ).sum(axis=0, keepdims=True)
+            ).reshape(1, -1)
 
             U_new[:, cluster] -= bias.sum(axis=1) / L[cluster] ** 2
         
